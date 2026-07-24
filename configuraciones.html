@@ -289,7 +289,7 @@
         function actualizarInterfazGlobal() {
             document.getElementById('mainName').innerText = currentUserData.nombre || 'Usuario';
             document.getElementById('mainHandle').innerText = currentUserData.username ? '@'+currentUserData.username.replace('@','') : '@usuario';
-            document.getElementById('mainAvatar').src = currentUserData.fotoPerfil || `https://ui-avatars.com/api/?name=${currentUserData.nombre || 'User'}&background=random`;
+            document.getElementById('mainAvatar').src = currentUserData.fotoPerfil || `https://ui-avatars.com/api/?name=${encodeURIComponent(currentUserData.nombre || 'User')}&background=random`;
             
             let saldo = currentUserData.saldo ? parseFloat(currentUserData.saldo).toFixed(2) : "0.00";
             let ganancias = currentUserData.ganancias ? parseFloat(currentUserData.ganancias).toFixed(2) : "0.00";
@@ -328,10 +328,6 @@
             }
         }
 
-        // ===============================================
-        // AHORA LAS FOTOS NO SE GUARDAN AL INSTANTE
-        // SOLO SE CARGAN A IMGBB Y ESPERAN AL BOTÓN GUARDAR
-        // ===============================================
         async function subirImagenConfig(event, tipo) {
             const file = event.target.files[0];
             if (!file) return;
@@ -369,9 +365,6 @@
             }
         }
 
-        // ===============================================
-        // BATCH UPDATE: ACTUALIZAR PERFIL Y PUBLICACIONES
-        // ===============================================
         async function guardarCuenta() {
             let precioSub = parseFloat(document.getElementById('inpPrecioSub').value) || 0;
             
@@ -386,12 +379,29 @@
                 userNameCorregido = '@' + userNameCorregido;
             }
 
+            // VALIDAR NOMBRE DE USUARIO ÚNICO (Evita duplicados)
+            if (userNameCorregido !== currentUserData.username) {
+                const snapUser = await db.collection('usuarios').where('username', '==', userNameCorregido).limit(1).get();
+                if (!snapUser.empty) {
+                    alert("Este nombre de usuario ya está en uso. Por favor elige otro.");
+                    btn.innerText = "Guardar Todos los Cambios"; btn.disabled = false;
+                    return;
+                }
+            }
+
+            // GENERAR FOTO POR DEFECTO SI ESTÁ VACÍA
+            let fotoPerfilUrl = document.getElementById('inpUrlPerfil').value;
+            let nombreIngresado = document.getElementById('inpNombre').value;
+            if (!fotoPerfilUrl || fotoPerfilUrl.trim() === "") {
+                fotoPerfilUrl = `https://ui-avatars.com/api/?name=${encodeURIComponent(nombreIngresado)}&background=random`;
+            }
+
             const nuevosDatos = {
                 precioSuscripcion: precioSub,
-                nombre: document.getElementById('inpNombre').value,
+                nombre: nombreIngresado,
                 username: userNameCorregido,
                 bio: document.getElementById('inpBio').value,
-                fotoPerfil: document.getElementById('inpUrlPerfil').value,
+                fotoPerfil: fotoPerfilUrl,
                 fotoPortada: document.getElementById('inpUrlPortada').value,
                 trabajo: document.getElementById('inpTrabajo').value,
                 ciudad: document.getElementById('inpCiudad').value,
@@ -401,14 +411,13 @@
             };
             
             try {
-                // 1. Guardar en el documento principal del usuario
+                // Actualizar cuenta principal
                 await db.collection('usuarios').doc(currentUserAuth.uid).update(nuevosDatos);
                 
-                // 2. ACTUALIZACIÓN POR LOTES (Propagar a las publicaciones e historias)
+                // Actualizar todas las publicaciones antiguas para que el nombre y foto cambien de inmediato
                 const batch = db.batch();
-                
-                // Actualizar Publicaciones Viejas
                 const postsSnap = await db.collection('publicaciones').where('uid', '==', currentUserAuth.uid).get();
+                
                 postsSnap.forEach(doc => {
                     batch.update(doc.ref, {
                         autor: nuevosDatos.nombre,
@@ -417,26 +426,15 @@
                     });
                 });
                 
-                // Actualizar Historias Viejas
-                const historiasSnap = await db.collection('historias').where('uid', '==', currentUserAuth.uid).get();
-                historiasSnap.forEach(doc => {
-                    batch.update(doc.ref, {
-                        autor: nuevosDatos.nombre,
-                        usuario: nuevosDatos.username,
-                        fotoAutor: nuevosDatos.fotoPerfil
-                    });
-                });
-
                 await batch.commit();
 
-                alert("¡Perfil actualizado con éxito en todas tus publicaciones!");
+                alert("¡Perfil y publicaciones actualizadas con éxito!");
                 closeScreen('screen-cuenta');
 
             } catch(e) {
                 alert("Error al actualizar: " + e.message);
             } finally {
-                btn.innerText = "Guardar Todos los Cambios"; 
-                btn.disabled = false;
+                btn.innerText = "Guardar Todos los Cambios"; btn.disabled = false;
             }
         }
 
