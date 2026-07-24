@@ -133,11 +133,15 @@
         const auth = firebase.auth();
         const db = firebase.firestore();
 
-        // Bandera para evitar que Firebase redirija antes de tiempo
         let procesandoAuth = false;
 
-        // Solo verificar al cargar la página si ya había sesión guardada
         window.onload = () => {
+            // LEER URL PARA ABRIR REGISTRO DIRECTAMENTE
+            const urlParams = new URLSearchParams(window.location.search);
+            if (urlParams.get('view') === 'register') {
+                mostrarRegistro();
+            }
+
             auth.onAuthStateChanged((user) => {
                 if (user && !procesandoAuth) {
                     window.location.href = "index.html";
@@ -163,11 +167,10 @@
 
             const btn = document.getElementById('btnLogin');
             btn.innerText = "Ingresando..."; btn.disabled = true;
-            procesandoAuth = true; // Bloqueamos el redireccionamiento automático
+            procesandoAuth = true; 
 
             auth.signInWithEmailAndPassword(email, password)
                 .then(() => {
-                    // Redirigimos manualmente solo cuando el login fue exitoso
                     window.location.href = "index.html";
                 })
                 .catch((error) => {
@@ -197,12 +200,11 @@
 
             const btn = document.getElementById('btnRegister');
             btn.innerText = "Registrando..."; btn.disabled = true;
-            procesandoAuth = true; // Bloqueamos el redireccionamiento automático para que no interrumpa el guardado en la Base de Datos
+            procesandoAuth = true; 
 
             auth.createUserWithEmailAndPassword(email, password)
                 .then((userCredential) => {
                     const user = userCredential.user;
-                    // Aseguramos que se guarde el documento primero
                     return db.collection('usuarios').doc(user.uid).set({
                         uid: user.uid,
                         nombre: nombre,
@@ -217,7 +219,6 @@
                     });
                 })
                 .then(() => {
-                    // AHORA SÍ, cuando terminó de guardar, redirigimos
                     window.location.href = "index.html";
                 })
                 .catch((error) => {
