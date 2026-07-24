@@ -28,7 +28,7 @@
         .app-container {
             width: 100%; max-width: 500px; height: 100dvh;
             background: var(--of-bg); display: flex; flex-direction: column;
-            box-shadow: 0 0 15px rgba(0,0,0,0.05);
+            box-shadow: 0 0 15px rgba(0,0,0,0.05); position: relative;
         }
 
         .top-header {
@@ -44,86 +44,74 @@
 
         .chat-list { flex-grow: 1; overflow-y: auto; background: #fff; }
         
-        .chat-item {
-            display: flex; align-items: center; padding: 15px;
-            border-bottom: 1px solid var(--of-border); cursor: pointer; transition: 0.2s;
-        }
-        .chat-item:active { background: #f9f9f9; }
-        
-        .chat-avatar { width: 56px; height: 56px; border-radius: 50%; object-fit: cover; margin-right: 15px; }
-        
-        .chat-info { flex-grow: 1; overflow: hidden; }
-        .chat-name-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; }
-        .chat-name { font-weight: 700; font-size: 16px; color: var(--of-text); }
-        .chat-time { font-size: 12px; color: var(--of-gray); }
-        
-        .chat-preview {
-            font-size: 14px; color: var(--of-gray); white-space: nowrap;
-            overflow: hidden; text-overflow: ellipsis;
-        }
-
-        .unread .chat-name { color: var(--of-text); }
-        .unread .chat-preview { font-weight: 700; color: var(--of-text); }
-        .unread-dot {
-            width: 10px; height: 10px; background: var(--of-blue);
-            border-radius: 50%; display: inline-block; margin-left: 8px;
-        }
-
         #loadingScreen {
             position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: var(--of-bg);
             display: flex; justify-content: center; align-items: center; z-index: 1000;
             color: var(--of-blue); font-weight: bold; font-size: 20px;
         }
+
+        /* BUSCADOR MODAL */
+        .full-modal {
+            position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+            background: var(--of-bg); z-index: 3000; display: none; flex-direction: column;
+            animation: slideUp 0.3s ease-out;
+        }
+        @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+        
+        #searchOverlay { z-index: 2000; padding: 20px; box-sizing: border-box; }
+        .search-header { display: flex; align-items: center; gap: 10px; margin-bottom: 20px; }
+        .search-input { flex-grow: 1; padding: 12px 15px; border-radius: 20px; border: 1px solid #ddd; outline: none; font-size: 15px; }
+        .search-input:focus { border-color: var(--of-blue); }
+        .btn-search { background: var(--of-blue); color: white; border: none; padding: 12px 20px; border-radius: 20px; font-weight: bold; cursor: pointer; }
+        .search-results-container { margin-top: 20px; display: flex; flex-direction: column; gap: 10px; overflow-y: auto; }
+        .search-result-item { display: flex; align-items: center; gap: 15px; padding: 12px; background: #fff; border-radius: 12px; border: 1px solid var(--of-border); cursor: pointer; transition: 0.2s; box-shadow: 0 2px 5px rgba(0,0,0,0.02); }
+        .search-result-avatar { width: 50px; height: 50px; border-radius: 50%; object-fit: cover; border: 1px solid var(--of-border); }
+        .search-result-info { display: flex; flex-direction: column; }
+        .search-result-name { font-weight: bold; color: var(--of-text); font-size: 16px; display: flex; align-items: center; gap: 4px; }
+        .search-result-handle { color: var(--of-gray); font-size: 13px; margin-top: 2px; }
+        .verified-badge { width: 14px; height: 14px; fill: var(--of-blue); }
     </style>
 </head>
 <body>
 
+    <!-- OVERLAY DEL BUSCADOR DE CHAT -->
+    <div id="searchOverlay" class="full-modal">
+        <div class="search-header">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#333" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="cursor:pointer;" onclick="cerrarBuscador()">
+                <line x1="19" y1="12" x2="5" y2="12"></line>
+                <polyline points="12 19 5 12 12 5"></polyline>
+            </svg>
+            <input type="text" id="searchInput" class="search-input" placeholder="Nombre exacto o @usuario" onkeypress="if(event.key === 'Enter') buscarUsuario()">
+        </div>
+        <button id="searchBtn" class="btn-search" onclick="buscarUsuario()">Buscar para chatear</button>
+        <p style="font-size: 13px; color: #888; margin-top: 15px; text-align: center;">Busca el nombre exacto o @usuario de la persona con la que quieres hablar.</p>
+        <div id="searchResults" class="search-results-container"></div>
+    </div>
+
     <div class="app-container">
         
-        <div id="loadingScreen">Cargando Mensajes...</div>
+        <div id="loadingScreen">Bandeja...</div>
 
         <header class="top-header">
             <div class="header-left" onclick="window.location.href='index.html'">
                 <svg class="back-icon" viewBox="0 0 24 24"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
                 <h1 class="header-title">Mensajes</h1>
             </div>
-            <svg class="action-icon" viewBox="0 0 24 24"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg>
+            <!-- Botón del Lápiz (Abre el buscador) -->
+            <svg class="action-icon" viewBox="0 0 24 24" onclick="abrirBuscador()">
+                <path d="M12 20h9"></path>
+                <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path>
+            </svg>
         </header>
 
         <main class="chat-list" id="chatList">
-            <!-- Conversación 1 (Lleva al chat real pasando un ID por la URL) -->
-            <div class="chat-item unread" onclick="abrirChatPrivado('usuario_demo_1')">
-                <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Rev" class="chat-avatar">
-                <div class="chat-info">
-                    <div class="chat-name-row">
-                        <span class="chat-name">Revolution Team <span class="unread-dot"></span></span>
-                        <span class="chat-time">Ahora</span>
-                    </div>
-                    <div class="chat-preview">¡Hola! ¿Viste la nueva actualización?</div>
-                </div>
-            </div>
-
-            <!-- Conversaciones Simuladas -->
-            <div class="chat-item" onclick="abrirChatPrivado('usuario_demo_2')">
-                <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Mariana" class="chat-avatar">
-                <div class="chat-info">
-                    <div class="chat-name-row">
-                        <span class="chat-name">Mariana Lopez</span>
-                        <span class="chat-time">2 h</span>
-                    </div>
-                    <div class="chat-preview">Me parece excelente la idea de los perfiles.</div>
-                </div>
-            </div>
-
-            <div class="chat-item" onclick="abrirChatPrivado('usuario_demo_3')">
-                <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Carlos" class="chat-avatar">
-                <div class="chat-info">
-                    <div class="chat-name-row">
-                        <span class="chat-name">Carlos_M</span>
-                        <span class="chat-time">Ayer</span>
-                    </div>
-                    <div class="chat-preview">🎤 Nota de voz (0:15)</div>
-                </div>
+            <!-- Pantalla vacía limpia -->
+            <div style="text-align: center; padding: 60px 20px; color: #888;">
+                <svg width="60" height="60" viewBox="0 0 24 24" fill="none" stroke="#ccc" stroke-width="1.5" style="margin-bottom:15px;">
+                    <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path>
+                </svg>
+                <p style="font-size: 16px; font-weight: bold; color: #555; margin-bottom: 5px;">No tienes mensajes recientes</p>
+                <p style="font-size: 14px;">Haz clic en el ícono del lápiz arriba a la derecha para buscar un usuario y comenzar a chatear.</p>
             </div>
         </main>
 
@@ -141,18 +129,72 @@
 
         if (!firebase.apps.length) { firebase.initializeApp(firebaseConfig); }
         const auth = firebase.auth();
+        const db = firebase.firestore();
 
         auth.onAuthStateChanged((user) => {
             if (user) {
                 document.getElementById('loadingScreen').style.display = 'none';
+                // En el futuro, aquí podrás agregar el código para descargar la lista de tus chats activos de Firebase.
+                // Por ahora, se mantiene limpio y sin consumir lecturas de la base de datos hasta que el usuario decida buscar a alguien.
             } else {
                 window.location.href = "login.html";
             }
         });
 
-        function abrirChatPrivado(targetUid) {
-            // Pasamos el ID de la otra persona por la URL
-            window.location.href = `chat.html?id=${targetUid}`;
+        // ==========================================
+        // BUSCADOR PARA NUEVO CHAT
+        // ==========================================
+        function abrirBuscador() { document.getElementById('searchOverlay').style.display = 'flex'; document.getElementById('searchInput').focus(); }
+        function cerrarBuscador() { document.getElementById('searchOverlay').style.display = 'none'; document.getElementById('searchInput').value = ''; document.getElementById('searchResults').innerHTML = ''; }
+        
+        async function buscarUsuario() {
+            const queryText = document.getElementById('searchInput').value.trim();
+            if (!queryText) return;
+            const searchBtn = document.getElementById('searchBtn');
+            const resultsContainer = document.getElementById('searchResults');
+            searchBtn.innerText = "Buscando...";
+            resultsContainer.innerHTML = '<div style="text-align:center; color:#888; margin-top: 20px;">Buscando...</div>';
+            
+            try {
+                let snapshot;
+                if (queryText.startsWith('@')) {
+                    snapshot = await db.collection('usuarios').where('username', '==', queryText.toLowerCase()).limit(1).get();
+                } else {
+                    snapshot = await db.collection('usuarios').where('nombre', '==', queryText).limit(5).get();
+                    if (snapshot.empty) {
+                        const queryAsUser = '@' + queryText.toLowerCase().replace(/\s+/g, '');
+                        snapshot = await db.collection('usuarios').where('username', '==', queryAsUser).limit(1).get();
+                    }
+                }
+                
+                resultsContainer.innerHTML = ''; 
+                
+                if (!snapshot.empty) {
+                    let html = '';
+                    const verifiedSVG = `<svg class="verified-badge" viewBox="0 0 24 24"><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10 10-4.5 10-10S17.5 2 12 2zm-1.9 14.7L6 12.6l1.5-1.5 2.6 2.6 6.4-6.4 1.5 1.5-7.9 7.9z"></path></svg>`;
+                    
+                    snapshot.docs.forEach(doc => {
+                        const user = doc.data();
+                        const userId = doc.id; // ¡Este es el UID que necesitamos para chatear!
+                        const avatar = user.fotoPerfil || `https://ui-avatars.com/api/?name=${user.nombre || 'U'}&background=random`;
+                        
+                        // AL HACER CLIC, LO MANDA DIRECTO AL CHAT PRIVADO
+                        html += `
+                        <div class="search-result-item" onclick="window.location.href='chat.html?id=${userId}'">
+                            <img src="${avatar}" class="search-result-avatar">
+                            <div class="search-result-info">
+                                <span class="search-result-name">${user.nombre} ${verifiedSVG}</span>
+                                <span class="search-result-handle">${user.username}</span>
+                            </div>
+                        </div>`;
+                    });
+                    resultsContainer.innerHTML = html;
+                } else {
+                    resultsContainer.innerHTML = '<div style="text-align:center; color:#888; margin-top: 20px;">No se encontraron resultados exactos.</div>';
+                }
+            } catch(e) {
+                resultsContainer.innerHTML = '<div style="text-align:center; color:#FF3B30; margin-top: 20px;">Error de conexión.</div>';
+            } finally { searchBtn.innerText = "Buscar para chatear"; }
         }
     </script>
 </body>
