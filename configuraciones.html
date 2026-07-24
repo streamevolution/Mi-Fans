@@ -1,0 +1,443 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Configuraciones - Mi Fans</title>
+    
+    <!-- SDKs de Firebase (v8) -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+
+    <style>
+        :root {
+            --of-blue: #00AFF0;
+            --of-gray: #8A96A3;
+            --of-bg: #FFFFFF;
+            --of-border: #EAEAEA;
+            --of-text: #242529;
+            --of-danger: #FF3B30;
+        }
+
+        body, html {
+            margin: 0; padding: 0; height: 100%; width: 100%;
+            background-color: #f4f4f4;
+            font-family: -apple-system, BlinkMacSystemFont, "Roboto", sans-serif;
+            display: flex; justify-content: center;
+        }
+
+        .app-container {
+            width: 100%; max-width: 500px; height: 100dvh;
+            background: var(--of-bg); display: flex; flex-direction: column;
+            box-shadow: 0 0 15px rgba(0,0,0,0.05); position: relative;
+            overflow: hidden; /* Para las animaciones de pantallas */
+        }
+
+        /* PANTALLAS (SCREENS) */
+        .screen {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: var(--of-bg); display: flex; flex-direction: column;
+            transform: translateX(100%); transition: transform 0.3s ease;
+            z-index: 10;
+        }
+        .screen.active { transform: translateX(0); z-index: 20; }
+        .screen.main-screen { transform: translateX(0); z-index: 10; } /* Menú principal siempre al fondo */
+
+        .top-header {
+            background: var(--of-bg); padding: 15px; display: flex; align-items: center; gap: 15px;
+            border-bottom: 1px solid var(--of-border); z-index: 30; flex-shrink: 0;
+        }
+        .back-icon { width: 24px; height: 24px; fill: none; stroke: var(--of-text); stroke-width: 2; cursor: pointer; }
+        .header-title { font-size: 18px; font-weight: 800; margin: 0; color: var(--of-text); }
+
+        .content-scroll { flex-grow: 1; overflow-y: auto; background: #fdfdfd; padding-bottom: 20px;}
+
+        /* ESTILOS DEL MENÚ PRINCIPAL */
+        .profile-summary { padding: 20px 15px; display: flex; align-items: center; gap: 15px; border-bottom: 8px solid #f4f4f4; background: var(--of-bg); }
+        .profile-avatar { width: 60px; height: 60px; border-radius: 50%; object-fit: cover; border: 2px solid var(--of-border); }
+        .profile-info { display: flex; flex-direction: column; }
+        .profile-name { font-size: 18px; font-weight: 700; color: var(--of-text); }
+        .profile-handle { font-size: 14px; color: var(--of-gray); margin-top: 2px; }
+
+        .settings-group { border-bottom: 8px solid #f4f4f4; }
+        .settings-item { display: flex; align-items: center; justify-content: space-between; padding: 16px 15px; background: var(--of-bg); border-bottom: 1px solid var(--of-border); cursor: pointer; }
+        .settings-item:last-child { border-bottom: none; }
+        .item-left { display: flex; align-items: center; gap: 15px; }
+        .item-icon { width: 22px; height: 22px; fill: none; stroke: var(--of-gray); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round;}
+        .item-text { font-size: 16px; font-weight: 500; color: var(--of-text); }
+        .item-right { display: flex; align-items: center; gap: 10px; }
+        .item-value { font-size: 15px; font-weight: 600; color: var(--of-blue); }
+        .chevron-icon { width: 18px; height: 18px; fill: none; stroke: var(--of-gray); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+        .logout-text { color: var(--of-danger); font-weight: 600; } .logout-icon { stroke: var(--of-danger); }
+
+        /* ESTILOS DE FORMULARIOS INTERNOS */
+        .form-container { padding: 20px 15px; }
+        .input-group { margin-bottom: 15px; display: flex; flex-direction: column; gap: 5px; }
+        .input-group label { font-size: 13px; font-weight: 600; color: var(--of-gray); }
+        .input-group input { padding: 12px; border: 1px solid var(--of-border); border-radius: 8px; font-size: 15px; outline: none; background: #fdfdfd; }
+        .input-group input:focus { border-color: var(--of-blue); }
+        .input-group input:disabled { background: #EAEAEA; color: #666; }
+        
+        .btn-primary { background: var(--of-blue); color: white; border: none; padding: 14px; border-radius: 25px; font-size: 16px; font-weight: bold; cursor: pointer; width: 100%; margin-top: 10px; }
+        .btn-primary:active { opacity: 0.8; }
+
+        /* INFO WALLET */
+        .bank-card { background: #f4f9ff; border: 1px solid #cce4ff; border-radius: 10px; padding: 15px; margin-bottom: 20px; }
+        .bank-card p { margin: 5px 0; font-size: 14px; color: #333; }
+        .bank-card strong { color: var(--of-blue); }
+
+        #loadingScreen {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: var(--of-bg);
+            display: flex; justify-content: center; align-items: center; z-index: 1000;
+            color: var(--of-blue); font-weight: bold; font-size: 18px; flex-direction: column; gap: 10px;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="app-container">
+        
+        <div id="loadingScreen">
+            <span style="font-size: 30px;">⚙️</span>
+            Sincronizando datos...
+        </div>
+
+        <!-- ================= PANTALLA PRINCIPAL ================= -->
+        <div id="screen-main" class="screen main-screen active">
+            <header class="top-header">
+                <svg class="back-icon" viewBox="0 0 24 24" onclick="window.location.href='index.html'"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
+                <h1 class="header-title">Configuraciones</h1>
+            </header>
+            <main class="content-scroll">
+                <div class="profile-summary" onclick="openScreen('screen-cuenta')">
+                    <img src="https://ui-avatars.com/api/?name=User&background=random" id="mainAvatar" class="profile-avatar">
+                    <div class="profile-info">
+                        <span class="profile-name" id="mainName">Cargando...</span>
+                        <span class="profile-handle" id="mainHandle">@usuario</span>
+                    </div>
+                </div>
+
+                <div class="settings-group">
+                    <div class="settings-item" onclick="openScreen('screen-wallet')">
+                        <div class="item-left"><svg class="item-icon" viewBox="0 0 24 24"><path d="M20 12V8H6a2 2 0 0 1-2-2c0-1.1.9-2 2-2h12v4"></path><path d="M4 6v12c0 1.1.9 2 2 2h14v-8H6a2 2 0 0 1-2-2z"></path></svg><span class="item-text">Mi Wallet (Saldo)</span></div>
+                        <div class="item-right"><span class="item-value" id="walletBalance">$0.00</span><svg class="chevron-icon" viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"></polyline></svg></div>
+                    </div>
+                    <div class="settings-item" onclick="openScreen('screen-metodo-pago')">
+                        <div class="item-left"><svg class="item-icon" viewBox="0 0 24 24"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"></rect><line x1="1" y1="10" x2="23" y2="10"></line></svg><span class="item-text">Métodos de cobro</span></div>
+                        <div class="item-right"><svg class="chevron-icon" viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"></polyline></svg></div>
+                    </div>
+                </div>
+
+                <div class="settings-group">
+                    <div class="settings-item" onclick="openScreen('screen-cuenta')">
+                        <div class="item-left"><svg class="item-icon" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg><span class="item-text">Cuenta</span></div>
+                        <div class="item-right"><svg class="chevron-icon" viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"></polyline></svg></div>
+                    </div>
+                    <div class="settings-item" onclick="openScreen('screen-seguridad')">
+                        <div class="item-left"><svg class="item-icon" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg><span class="item-text">Seguridad</span></div>
+                        <div class="item-right"><svg class="chevron-icon" viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"></polyline></svg></div>
+                    </div>
+                    <div class="settings-item" onclick="alert('Políticas de privacidad (Próximamente)')">
+                        <div class="item-left"><svg class="item-icon" viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg><span class="item-text">Privacidad</span></div>
+                        <div class="item-right"><svg class="chevron-icon" viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"></polyline></svg></div>
+                    </div>
+                    <div class="settings-item" onclick="alert('No tienes notificaciones nuevas.')">
+                        <div class="item-left"><svg class="item-icon" viewBox="0 0 24 24"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg><span class="item-text">Notificaciones</span></div>
+                        <div class="item-right"><svg class="chevron-icon" viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"></polyline></svg></div>
+                    </div>
+                </div>
+
+                <div class="settings-group" style="border-bottom: none;">
+                    <div class="settings-item" onclick="alert('Soporte: Contacta a soporte@mifans.com')">
+                        <div class="item-left"><svg class="item-icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"></circle><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path><line x1="12" y1="17" x2="12.01" y2="17"></line></svg><span class="item-text">Ayuda y Soporte</span></div>
+                        <div class="item-right"><svg class="chevron-icon" viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"></polyline></svg></div>
+                    </div>
+                    <div class="settings-item" onclick="cerrarSesion()">
+                        <div class="item-left"><svg class="item-icon logout-icon" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg><span class="item-text logout-text">Cerrar Sesión</span></div>
+                    </div>
+                </div>
+            </main>
+        </div>
+
+        <!-- ================= PANTALLA: CUENTA ================= -->
+        <div id="screen-cuenta" class="screen">
+            <header class="top-header">
+                <svg class="back-icon" viewBox="0 0 24 24" onclick="closeScreen('screen-cuenta')"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
+                <h1 class="header-title">Editar Cuenta</h1>
+            </header>
+            <div class="content-scroll form-container">
+                <div class="input-group">
+                    <label>Nombre a mostrar</label>
+                    <input type="text" id="inpNombre" placeholder="Tu nombre público">
+                </div>
+                <div class="input-group">
+                    <label>Nombre de usuario (@)</label>
+                    <input type="text" id="inpUsername" placeholder="ej. usuario_123">
+                </div>
+                <div class="input-group">
+                    <label>URL Foto de Perfil (Link de imagen)</label>
+                    <input type="url" id="inpFoto" placeholder="https://...">
+                </div>
+                <div class="input-group">
+                    <label>URL Foto de Portada (Link de imagen)</label>
+                    <input type="url" id="inpPortada" placeholder="https://...">
+                </div>
+                <button class="btn-primary" onclick="guardarCuenta()">Guardar Cambios</button>
+            </div>
+        </div>
+
+        <!-- ================= PANTALLA: SEGURIDAD ================= -->
+        <div id="screen-seguridad" class="screen">
+            <header class="top-header">
+                <svg class="back-icon" viewBox="0 0 24 24" onclick="closeScreen('screen-seguridad')"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
+                <h1 class="header-title">Seguridad</h1>
+            </header>
+            <div class="content-scroll form-container">
+                <div class="input-group">
+                    <label>Correo Electrónico (No se puede cambiar)</label>
+                    <input type="email" id="inpEmail" disabled>
+                </div>
+                <div class="input-group" style="margin-top: 20px;">
+                    <label>Nueva Contraseña</label>
+                    <input type="password" id="inpPass1" placeholder="Mínimo 6 caracteres">
+                </div>
+                <div class="input-group">
+                    <label>Confirmar Nueva Contraseña</label>
+                    <input type="password" id="inpPass2" placeholder="Repite la contraseña">
+                </div>
+                <button class="btn-primary" onclick="cambiarPassword()">Actualizar Contraseña</button>
+            </div>
+        </div>
+
+        <!-- ================= PANTALLA: WALLET ================= -->
+        <div id="screen-wallet" class="screen">
+            <header class="top-header">
+                <svg class="back-icon" viewBox="0 0 24 24" onclick="closeScreen('screen-wallet')"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
+                <h1 class="header-title">Mi Wallet</h1>
+            </header>
+            <div class="content-scroll form-container">
+                <div style="text-align: center; margin-bottom: 20px;">
+                    <p style="color: var(--of-gray); margin-bottom: 5px;">Saldo Actual</p>
+                    <h1 id="walletBalanceBig" style="color: var(--of-blue); margin: 0; font-size: 40px;">$0.00</h1>
+                </div>
+                
+                <h3 style="margin-bottom: 10px;">Recargar Saldo</h3>
+                <p style="font-size: 14px; color: #666;">Para recargar tu cuenta, realiza una transferencia con los siguientes datos:</p>
+                <div class="bank-card">
+                    <p>Banco: <strong>STP (Sistema de Transferencias)</strong></p>
+                    <p>Cuenta CLABE: <strong>646180123456789012</strong></p>
+                    <p>Beneficiario: <strong>Mi Fans Pagos</strong></p>
+                    <p>Concepto: <strong id="conceptoPago">Recarga...</strong></p>
+                </div>
+
+                <div class="input-group">
+                    <label>Monto depositado ($)</label>
+                    <input type="number" id="inpMontoRecarga" placeholder="Ej. 500">
+                </div>
+                <button class="btn-primary" onclick="validarSaldo()">Validar Saldo (Notificar Pago)</button>
+            </div>
+        </div>
+
+        <!-- ================= PANTALLA: MÉTODOS DE PAGO ================= -->
+        <div id="screen-metodo-pago" class="screen">
+            <header class="top-header">
+                <svg class="back-icon" viewBox="0 0 24 24" onclick="closeScreen('screen-metodo-pago')"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
+                <h1 class="header-title">Datos para recibir pagos</h1>
+            </header>
+            <div class="content-scroll form-container">
+                <p style="font-size: 14px; color: #666; margin-bottom: 20px;">Agrega tu cuenta bancaria para recibir tus ganancias. La cuenta debe estar a tu nombre.</p>
+                
+                <div class="input-group">
+                    <label>Banco</label>
+                    <input type="text" id="inpCobroBanco" placeholder="Ej. BBVA, Banamex, Nu">
+                </div>
+                <div class="input-group">
+                    <label>Nombre del Titular</label>
+                    <input type="text" id="inpCobroTitular" placeholder="Tu nombre completo">
+                </div>
+                <div class="input-group">
+                    <label>Cuenta CLABE (18 dígitos)</label>
+                    <input type="number" id="inpCobroClabe" placeholder="000000000000000000">
+                </div>
+                <button class="btn-primary" onclick="guardarMetodoCobro()">Guardar Datos Bancarios</button>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        // CONFIGURACIÓN DE FIREBASE
+        const firebaseConfig = {
+            apiKey: "AIzaSyBTp1VWtvkbSueprfAPhJ0EpxSmKfEwtzc",
+            authDomain: "mi-fans-2d49e.firebaseapp.com",
+            projectId: "mi-fans-2d49e",
+            storageBucket: "mi-fans-2d49e.firebasestorage.app",
+            messagingSenderId: "217541513154",
+            appId: "1:217541513154:web:df760909e97bd3abb8905b"
+        };
+
+        if (!firebase.apps.length) { firebase.initializeApp(firebaseConfig); }
+        const auth = firebase.auth();
+        const db = firebase.firestore();
+
+        // Variables Globales para optimizar datos (no recargar de base de datos)
+        let currentUserAuth = null;
+        let currentUserData = null;
+
+        // INICIALIZACIÓN
+        auth.onAuthStateChanged((user) => {
+            if (user) {
+                currentUserAuth = user;
+                document.getElementById('inpEmail').value = user.email; // El correo intocable
+                
+                // Extraer datos de Firestore SOLO UNA VEZ
+                db.collection('usuarios').doc(user.uid).get().then((doc) => {
+                    if (doc.exists) {
+                        currentUserData = doc.data();
+                        actualizarInterfazGlobal();
+                    }
+                    document.getElementById('loadingScreen').style.display = 'none';
+                }).catch((error) => {
+                    alert("Error cargando perfil: " + error);
+                });
+            } else {
+                window.location.href = "login.html";
+            }
+        });
+
+        // FUNCIONES DE NAVEGACIÓN SPA (Ahorra datos y es muy rápido)
+        function openScreen(screenId) {
+            document.getElementById(screenId).classList.add('active');
+        }
+        function closeScreen(screenId) {
+            document.getElementById(screenId).classList.remove('active');
+        }
+
+        // POBLAR INTERFAZ CON DATOS
+        function actualizarInterfazGlobal() {
+            // Menú principal
+            document.getElementById('mainName').innerText = currentUserData.nombre || 'Usuario';
+            document.getElementById('mainHandle').innerText = currentUserData.username ? '@'+currentUserData.username.replace('@','') : '@usuario';
+            document.getElementById('mainAvatar').src = currentUserData.fotoPerfil || `https://ui-avatars.com/api/?name=${currentUserData.nombre || 'User'}&background=random`;
+            
+            // Saldo
+            let saldo = currentUserData.saldo ? parseFloat(currentUserData.saldo).toFixed(2) : "0.00";
+            document.getElementById('walletBalance').innerText = `$${saldo}`;
+            document.getElementById('walletBalanceBig').innerText = `$${saldo}`;
+            document.getElementById('conceptoPago').innerText = `Recarga ${currentUserData.username || currentUserAuth.uid.substring(0,6)}`;
+
+            // Formulario de Cuenta
+            document.getElementById('inpNombre').value = currentUserData.nombre || '';
+            document.getElementById('inpUsername').value = currentUserData.username || '';
+            document.getElementById('inpFoto').value = currentUserData.fotoPerfil || '';
+            document.getElementById('inpPortada').value = currentUserData.fotoPortada || '';
+
+            // Formulario de Cobro
+            if(currentUserData.datosBancarios) {
+                document.getElementById('inpCobroBanco').value = currentUserData.datosBancarios.banco || '';
+                document.getElementById('inpCobroTitular').value = currentUserData.datosBancarios.titular || '';
+                document.getElementById('inpCobroClabe').value = currentUserData.datosBancarios.clabe || '';
+            }
+        }
+
+        // ================= ACCIONES EN FIREBASE =================
+
+        // 1. EDITAR CUENTA REALMENTE EN FIREBASE
+        function guardarCuenta() {
+            const btn = event.target; btn.innerText = "Guardando..."; btn.disabled = true;
+
+            const nuevosDatos = {
+                nombre: document.getElementById('inpNombre').value,
+                username: document.getElementById('inpUsername').value,
+                fotoPerfil: document.getElementById('inpFoto').value,
+                fotoPortada: document.getElementById('inpPortada').value
+            };
+
+            db.collection('usuarios').doc(currentUserAuth.uid).update(nuevosDatos).then(() => {
+                alert("¡Perfil actualizado con éxito!");
+                // Actualizar caché local
+                Object.assign(currentUserData, nuevosDatos);
+                actualizarInterfazGlobal();
+                closeScreen('screen-cuenta');
+            }).catch(e => alert("Error: " + e.message))
+              .finally(() => { btn.innerText = "Guardar Cambios"; btn.disabled = false; });
+        }
+
+        // 2. CAMBIAR CONTRASEÑA EN FIREBASE AUTH
+        function cambiarPassword() {
+            const pass1 = document.getElementById('inpPass1').value;
+            const pass2 = document.getElementById('inpPass2').value;
+
+            if(pass1.length < 6) return alert("La contraseña debe tener al menos 6 caracteres");
+            if(pass1 !== pass2) return alert("Las contraseñas no coinciden");
+
+            const btn = event.target; btn.innerText = "Actualizando..."; btn.disabled = true;
+
+            currentUserAuth.updatePassword(pass1).then(() => {
+                alert("¡Contraseña actualizada correctamente!");
+                document.getElementById('inpPass1').value = "";
+                document.getElementById('inpPass2').value = "";
+                closeScreen('screen-seguridad');
+            }).catch((error) => {
+                if(error.code === 'auth/requires-recent-login') {
+                    alert("Por seguridad, debes cerrar sesión y volver a entrar para cambiar tu contraseña.");
+                } else {
+                    alert("Error: " + error.message);
+                }
+            }).finally(() => { btn.innerText = "Actualizar Contraseña"; btn.disabled = false; });
+        }
+
+        // 3. VALIDAR SALDO (Crear solicitud en Firestore)
+        function validarSaldo() {
+            const monto = document.getElementById('inpMontoRecarga').value;
+            if(!monto || monto <= 0) return alert("Ingresa un monto válido.");
+
+            const btn = event.target; btn.innerText = "Validando..."; btn.disabled = true;
+
+            // Guardar el ticket de validación en una subcolección o colección principal
+            db.collection('validaciones_saldo').add({
+                uid: currentUserAuth.uid,
+                username: currentUserData.username || 'Desconocido',
+                montoReclamado: parseFloat(monto),
+                fecha: firebase.firestore.FieldValue.serverTimestamp(),
+                estado: 'Pendiente'
+            }).then(() => {
+                alert("¡Tu pago está en validación! El saldo se reflejará pronto.");
+                document.getElementById('inpMontoRecarga').value = "";
+                closeScreen('screen-wallet');
+            }).catch(e => alert("Error al notificar: " + e.message))
+              .finally(() => { btn.innerText = "Validar Saldo (Notificar Pago)"; btn.disabled = false; });
+        }
+
+        // 4. GUARDAR MÉTODOS DE COBRO
+        function guardarMetodoCobro() {
+            const banco = document.getElementById('inpCobroBanco').value;
+            const titular = document.getElementById('inpCobroTitular').value;
+            const clabe = document.getElementById('inpCobroClabe').value;
+
+            if(!banco || !titular || clabe.length < 10) return alert("Completa todos los datos bancarios correctamente.");
+
+            const btn = event.target; btn.innerText = "Guardando..."; btn.disabled = true;
+
+            const datosBancarios = { banco, titular, clabe };
+
+            db.collection('usuarios').doc(currentUserAuth.uid).update({ datosBancarios }).then(() => {
+                alert("¡Datos bancarios guardados! Aquí recibirás tus ganancias.");
+                currentUserData.datosBancarios = datosBancarios;
+                closeScreen('screen-metodo-pago');
+            }).catch(e => alert("Error: " + e.message))
+              .finally(() => { btn.innerText = "Guardar Datos Bancarios"; btn.disabled = false; });
+        }
+
+        // 5. CERRAR SESIÓN
+        function cerrarSesion() {
+            if (confirm("¿Seguro que deseas salir?")) {
+                document.getElementById('loadingScreen').style.display = 'flex';
+                document.getElementById('loadingScreen').innerHTML = "Saliendo...";
+                auth.signOut().then(() => window.location.href = "login.html");
+            }
+        }
+    </script>
+</body>
+</html>
