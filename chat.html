@@ -1,0 +1,470 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Chat Privado - Mi Fans</title>
+    
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+
+    <style>
+        body, html {
+            margin: 0; padding: 0; height: 100%; width: 100%;
+            background-color: #e5ddd5;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            overflow: hidden; 
+        }
+
+        .chat-container {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100dvh; 
+            display: flex; flex-direction: column; background: #e5ddd5;
+        }
+
+        .chat-header {
+            background: #075e54; color: white; padding: 10px 15px;
+            display: flex; align-items: center; justify-content: space-between;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1); flex-shrink: 0; z-index: 10;
+        }
+        .chat-header-left { display: flex; align-items: center; gap: 12px; cursor: pointer; }
+        .back-arrow { width: 24px; height: 24px; fill: none; stroke: white; stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round; }
+        .header-avatar { width: 40px; height: 40px; border-radius: 50%; object-fit: cover; background-color: #e4e6eb; border: 1px solid rgba(255,255,255,0.3); }
+        .chat-header-info { display: flex; flex-direction: column; }
+        .chat-header-info h3 { margin: 0; font-size: 16px; font-weight: bold; letter-spacing: 0.3px;}
+        .chat-header-info p { margin: 0; font-size: 12px; opacity: 0.9; margin-top: 2px;}
+
+        .chat-header-right { position: relative; display: flex; align-items: center;}
+        .dots-menu { width: 24px; height: 24px; fill: white; cursor: pointer; padding: 5px; }
+        
+        .header-dropdown {
+            position: absolute; top: 45px; right: 0; background: white; color: #111;
+            border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            display: flex; flex-direction: column; min-width: 150px;
+            opacity: 0; visibility: hidden; transition: 0.2s; z-index: 100;
+        }
+        .header-dropdown.active { opacity: 1; visibility: visible; transform: translateY(5px); }
+        .dropdown-item { padding: 14px 16px; font-size: 15px; cursor: pointer; font-weight: 500;}
+        .dropdown-item:hover { background: #f0f0f0; }
+
+        .chat-body {
+            flex-grow: 1; padding: 20px 15px; overflow-y: auto;
+            display: flex; flex-direction: column; gap: 18px; 
+            background-color: #e5ddd5;
+            background-image: url('https://user-images.githubusercontent.com/15075759/28719144-86dc0f70-73b1-11e7-911d-60d70fcded21.png');
+            background-size: cover; background-position: center;
+        }
+
+        .chat-message {
+            max-width: 85%; padding: 8px 12px; border-radius: 12px;
+            font-size: 14px; line-height: 1.4; position: relative;
+            color: #111; box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+            word-wrap: break-word; display: flex; flex-direction: column;
+            cursor: pointer; overflow: visible; 
+        }
+
+        .chat-message.others { background: #fff; align-self: flex-start; border-top-left-radius: 0; }
+        .chat-message.others::before { content: ""; position: absolute; top: 0; left: -8px; width: 0; height: 0; border-style: solid; border-width: 0 8px 10px 0; border-color: transparent #fff transparent transparent; }
+
+        .chat-message.mine { background: #dcf8c6; align-self: flex-end; border-top-right-radius: 0; }
+        .chat-message.mine::before { content: ""; position: absolute; top: 0; right: -8px; width: 0; height: 0; border-style: solid; border-width: 0 0 10px 8px; border-color: transparent transparent transparent #dcf8c6; }
+
+        .message-footer { display: flex; justify-content: flex-end; align-items: center; gap: 4px; margin-top: 4px; }
+        .chat-message-time { font-size: 10px; color: #888; }
+        .tick-icon { font-size: 12px; font-weight: bold; letter-spacing: -2px; margin-right: 2px;}
+        .tick-grey { color: #999; }
+        .tick-blue { color: #53bdeb; }
+
+        .reaction-bar {
+            position: absolute; bottom: -45px; background: white; border-radius: 30px;
+            padding: 8px 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.2); display: flex; gap: 10px;
+            z-index: 50; opacity: 0; visibility: hidden; transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275); white-space: nowrap; 
+        }
+        .chat-message.mine .reaction-bar { right: 0; transform-origin: right bottom; transform: scale(0.5); }
+        .chat-message.others .reaction-bar { left: 0; transform-origin: left bottom; transform: scale(0.5); }
+        .chat-message.mine .reaction-bar.active, .chat-message.others .reaction-bar.active { transform: scale(1); opacity: 1; visibility: visible; }
+        .reaction-bar span { font-size: 24px; cursor: pointer; transition: transform 0.1s; }
+        .reaction-bar span:active { transform: scale(1.3); }
+        
+        .reaction-badge {
+            position: absolute; bottom: -12px; right: 10px; background: white; border-radius: 12px;
+            padding: 2px 6px; font-size: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+            display: flex; align-items: center; gap: 3px; z-index: 5;
+        }
+
+        .chat-footer {
+            background: #f0f0f0; padding: 10px 15px; display: flex; align-items: flex-end; gap: 8px;
+            flex-shrink: 0; padding-bottom: env(safe-area-inset-bottom, 15px); position: relative;
+        }
+        .chat-input-wrapper {
+            flex-grow: 1; background: #fff; border-radius: 24px; padding: 5px 10px;
+            display: flex; align-items: center; min-height: 44px; box-sizing: border-box; gap: 4px;
+        }
+        .btn-action {
+            background: none; border: none; font-size: 20px; cursor: pointer; padding: 5px;
+            color: #888; display: flex; justify-content: center; align-items: center; transition: color 0.2s;
+        }
+        .chat-input { border: none; outline: none; width: 100%; font-size: 16px; background: transparent; padding: 8px 5px; }
+        .chat-btn-send {
+            background: #128c7e; color: white; width: 44px; height: 44px; border-radius: 50%;
+            display: flex; justify-content: center; align-items: center; cursor: pointer;
+            border: none; flex-shrink: 0; box-shadow: 0 1px 3px rgba(0,0,0,0.2); margin-bottom: 2px;
+        }
+
+        .emoji-panel {
+            position: absolute; bottom: 70px; left: 15px; width: calc(100% - 30px); max-width: 350px;
+            background: #fff; border-radius: 16px; box-shadow: 0 5px 15px rgba(0,0,0,0.2); padding: 15px;
+            box-sizing: border-box; display: grid; grid-template-columns: repeat(8, 1fr); gap: 10px;
+            z-index: 100; transform: translateY(10px); opacity: 0; visibility: hidden; transition: all 0.2s ease;
+        }
+        .emoji-panel.active { transform: translateY(0); opacity: 1; visibility: visible; }
+        .emoji-item { font-size: 22px; cursor: pointer; text-align: center; }
+
+        #loadingScreen {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: #fff;
+            display: flex; justify-content: center; align-items: center; z-index: 1000;
+            color: #075e54; font-weight: bold;
+        }
+
+        .msg-code { font-family: monospace; background: rgba(0,0,0,0.06); padding: 2px 4px; border-radius: 4px; }
+        audio { width: 220px; height: 40px; outline: none; }
+    </style>
+</head>
+<body>
+
+    <div class="chat-container">
+        <div id="loadingScreen">Conectando a Chat Privado...</div>
+
+        <!-- CABECERA -->
+        <div class="chat-header">
+            <div class="chat-header-left" onclick="window.location.href='bandeja.html'">
+                <svg class="back-arrow" viewBox="0 0 24 24"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
+                <img src="https://ui-avatars.com/api/?name=Cargando&background=random" id="headerAvatar" class="header-avatar" alt="Perfil">
+                <div class="chat-header-info">
+                    <h3 id="displayUserName">Cargando...</h3>
+                    <p>En línea</p>
+                </div>
+            </div>
+            <div class="chat-header-right">
+                <svg class="dots-menu" viewBox="0 0 24 24" onclick="toggleHeaderMenu(event)">
+                    <circle cx="12" cy="5" r="2"></circle>
+                    <circle cx="12" cy="12" r="2"></circle>
+                    <circle cx="12" cy="19" r="2"></circle>
+                </svg>
+                
+                <div class="header-dropdown" id="headerDropdown">
+                    <div class="dropdown-item" onclick="window.location.href='perfil.html'">👤 Ver Perfil</div>
+                    <div class="dropdown-item" onclick="vaciarChatPrivado()">🗑️ Vaciar Chat</div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="chat-body" id="chatBody" onclick="cerrarPaneles()"></div>
+
+        <div class="chat-footer">
+            <div class="emoji-panel" id="emojiPanel"></div>
+            <div class="chat-input-wrapper">
+                <button class="btn-action" onclick="toggleEmojiPanel()">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M8 14s1.5 2 4 2 4-2 4-2"></path><line x1="9" y1="9" x2="9.01" y2="9"></line><line x1="15" y1="9" x2="15.01" y2="9"></line></svg>
+                </button>
+                <input type="text" class="chat-input" id="messageInput" placeholder="Escribe un mensaje..." autocomplete="off" onkeypress="if(event.key === 'Enter') enviarMensaje()" onfocus="cerrarPaneles()">
+                <input type="file" id="imageInput" accept="image/*" style="display: none;" onchange="subirImagen(event)">
+                <button class="btn-action" onclick="document.getElementById('imageInput').click()" style="transform: rotate(45deg);">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"></path></svg>
+                </button>
+                <button class="btn-action" id="btnMic" onclick="toggleGrabacionAudio()">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"></path><path d="M19 10v2a7 7 0 0 1-14 0v-2"></path><line x1="12" y1="19" x2="12" y2="22"></line></svg>
+                </button>
+            </div>
+            <button class="chat-btn-send" id="btnSend" onclick="enviarMensaje()">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-left: -2px;"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+            </button>
+        </div>
+    </div>
+
+    <script>
+        const firebaseConfig = {
+            apiKey: "AIzaSyBTp1VWtvkbSueprfAPhJ0EpxSmKfEwtzc",
+            authDomain: "mi-fans-2d49e.firebaseapp.com",
+            projectId: "mi-fans-2d49e",
+            storageBucket: "mi-fans-2d49e.firebasestorage.app",
+            messagingSenderId: "217541513154",
+            appId: "1:217541513154:web:df760909e97bd3abb8905b"
+        };
+
+        if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+        const db = firebase.firestore();
+
+        let currentActiveUser = null;
+        let unsubscribeListener = null;
+        let targetUid = null;
+        let privateRoomId = null;
+
+        const WORKER_URL = 'wss://mifans-ticks.mrandroidtutorialeshd2.workers.dev/';
+        let ws;
+
+        function conectarWebSocket() {
+            ws = new WebSocket(WORKER_URL);
+            ws.onmessage = (event) => {
+                try {
+                    const data = JSON.parse(event.data);
+                    if (data.type === 'read' && data.messageId) {
+                        const tickElement = document.getElementById('tick-' + data.messageId);
+                        if (tickElement) {
+                            tickElement.classList.remove('tick-grey');
+                            tickElement.classList.add('tick-blue');
+                        }
+                    }
+                } catch (e) {}
+            };
+            ws.onclose = () => setTimeout(conectarWebSocket, 3000);
+        }
+
+        const emojisMasComunes = ['😀','😂','🤣','😊','😍','🥰','😘','😜','😎','🤩','🥳','😏','😒','😔','🥺','😭','😤','😡','🤯','😱','🥶','🥵','😴','😷','👽','👻','💩','👍','👎','👏','🙌','🤝','🔥','❤️','💔','✨','🌟','🎉','🍺','🎁'];
+        function cargarEmojis() {
+            const panel = document.getElementById('emojiPanel');
+            panel.innerHTML = '';
+            emojisMasComunes.forEach(emoji => {
+                const span = document.createElement('span'); span.className = 'emoji-item'; span.innerText = emoji;
+                span.onclick = () => document.getElementById('messageInput').value += emoji;
+                panel.appendChild(span);
+            });
+        }
+
+        function toggleEmojiPanel() { 
+            const panel = document.getElementById('emojiPanel');
+            const isActive = panel.classList.contains('active');
+            cerrarPaneles();
+            if (!isActive) panel.classList.add('active');
+        }
+        
+        function toggleHeaderMenu(event) {
+            event.stopPropagation();
+            const dropdown = document.getElementById('headerDropdown');
+            const estabaActivo = dropdown.classList.contains('active');
+            cerrarPaneles(); 
+            if (!estabaActivo) dropdown.classList.add('active');
+        }
+
+        function cerrarPaneles() {
+            document.getElementById('emojiPanel').classList.remove('active');
+            document.getElementById('headerDropdown').classList.remove('active');
+            document.querySelectorAll('.reaction-bar.active').forEach(bar => bar.classList.remove('active'));
+        }
+        cargarEmojis();
+
+        // 1. EXTRACT TARGET UID FROM URL
+        const urlParams = new URLSearchParams(window.location.search);
+        targetUid = urlParams.get('id');
+
+        if(!targetUid) {
+            alert("No se especificó un chat.");
+            window.location.href = "bandeja.html";
+        }
+
+        auth.onAuthStateChanged((user) => {
+            if (user) {
+                db.collection('usuarios').doc(user.uid).get().then((doc) => {
+                    if (doc.exists) {
+                        currentActiveUser = doc.data();
+                        
+                        // 2. GENERAR ID ÚNICO DE SALA PRIVADA
+                        // Al ordenar los UIDs alfabéticamente, siempre generará el mismo ID sin importar quién inicie el chat
+                        privateRoomId = currentActiveUser.uid < targetUid ? `${currentActiveUser.uid}_${targetUid}` : `${targetUid}_${currentActiveUser.uid}`;
+
+                        // Simular nombre del otro usuario (Normalmente lo buscarías en la base de datos)
+                        document.getElementById('displayUserName').innerText = "Chat con " + targetUid;
+                        document.getElementById('headerAvatar').src = `https://ui-avatars.com/api/?name=${targetUid}&background=random`;
+
+                        document.getElementById('loadingScreen').style.display = 'none';
+                        conectarWebSocket();
+                        iniciarEscuchaDeMensajes();
+                    }
+                });
+            } else {
+                window.location.href = "login.html";
+            }
+        });
+
+        // 3. VACIAR CHAT PRIVADO
+        async function vaciarChatPrivado() {
+            cerrarPaneles();
+            if(confirm("¿Estás seguro de que deseas vaciar este chat privado?")) {
+                try {
+                    const snapshot = await db.collection('chats').doc(privateRoomId).collection('mensajes').get();
+                    if(snapshot.empty) return alert("El chat ya está vacío.");
+
+                    const batch = db.batch();
+                    snapshot.docs.forEach((doc) => batch.delete(doc.ref));
+                    await batch.commit();
+                    document.getElementById('chatBody').innerHTML = '';
+                } catch(error) {
+                    console.error("Error vaciando chat:", error);
+                    alert("Hubo un error al intentar vaciar el chat.");
+                }
+            }
+        }
+
+        let mediaRecorder; let audioChunks = []; let isRecording = false;
+        async function toggleGrabacionAudio() {
+            const btnMic = document.getElementById('btnMic'); const input = document.getElementById('messageInput');
+            if (isRecording) {
+                mediaRecorder.stop(); isRecording = false; btnMic.style.color = '#888'; input.placeholder = "Procesando audio...";
+            } else {
+                try {
+                    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                    mediaRecorder = new MediaRecorder(stream); audioChunks = [];
+                    mediaRecorder.ondataavailable = e => { if (e.data.size > 0) audioChunks.push(e.data); };
+                    mediaRecorder.onstop = () => {
+                        stream.getTracks().forEach(track => track.stop());
+                        subirAudioCloudinary(new Blob(audioChunks, { type: 'audio/webm' }));
+                    };
+                    mediaRecorder.start(); isRecording = true; btnMic.style.color = 'red'; input.placeholder = "🔴 Grabando...";
+                } catch (err) { alert("Sin acceso al micrófono."); }
+            }
+        }
+
+        async function subirAudioCloudinary(blob) {
+            const input = document.getElementById('messageInput'); const btnSend = document.getElementById('btnSend');
+            input.disabled = true; btnSend.disabled = true; input.placeholder = "Subiendo a la nube...";
+
+            const formData = new FormData();
+            formData.append('file', blob, 'nota_voz.webm');
+            formData.append('upload_preset', 'mifans_audio'); 
+
+            try {
+                const res = await fetch(`https://api.cloudinary.com/v1_1/qnhwxlqz/auto/upload`, { method: 'POST', body: formData });
+                const data = await res.json();
+                if (data.secure_url) guardarMensajeFirebase({ audioUrl: data.secure_url, texto: "🎤 Nota de voz" });
+                else alert("Error Cloudinary: Verifica configuración.");
+            } catch (e) { alert("Error de conexión al subir audio."); } 
+            finally { input.placeholder = "Escribe un mensaje..."; input.disabled = false; btnSend.disabled = false; }
+        }
+
+        async function subirImagen(event) {
+            const file = event.target.files[0]; if (!file) return;
+            const input = document.getElementById('messageInput'); const btn = document.getElementById('btnSend');
+            input.disabled = true; btn.disabled = true; input.placeholder = "Subiendo imagen...";
+            
+            const formData = new FormData();
+            formData.append('image', file); formData.append('key', '88f000b35b55f78d1f16c9d9ea939050'); 
+            try {
+                const res = await fetch('https://api.imgbb.com/1/upload', { method: 'POST', body: formData });
+                const data = await res.json();
+                if (data.success) guardarMensajeFirebase({ imgUrl: data.data.url, texto: "📷 Imagen" });
+                else alert("No se pudo subir la imagen.");
+            } catch (e) { alert("Error al subir imagen."); } 
+            finally { input.placeholder = "Escribe un mensaje..."; input.disabled = false; btn.disabled = false; event.target.value = ''; }
+        }
+
+        function formatearTexto(texto) {
+            let html = texto.replace(/</g, "&lt;").replace(/>/g, "&gt;");
+            html = html.replace(/```([^`]+)```/g, '<span class="msg-code">$1</span>');
+            html = html.replace(/\*([^\*]+)\*/g, '<strong>$1</strong>');
+            html = html.replace(/_([^_]+)_/g, '<em>$1</em>');
+            html = html.replace(/~([^~]+)~/g, '<del>$1</del>'); return html;
+        }
+
+        function reaccionarMensaje(event, docId, emoji) {
+            event.stopPropagation(); 
+            // 4. GUARDAR REACCIÓN EN COLECCIÓN PRIVADA
+            db.collection('chats').doc(privateRoomId).collection('mensajes').doc(docId).set({
+                reacciones: { [currentActiveUser.uid]: emoji }
+            }, { merge: true });
+            cerrarPaneles();
+        }
+
+        function iniciarEscuchaDeMensajes() {
+            const chatBody = document.getElementById('chatBody');
+            
+            // 5. ESCUCHAR SOLO LA COLECCIÓN DE LA SALA PRIVADA
+            unsubscribeListener = db.collection('chats').doc(privateRoomId).collection('mensajes')
+                .orderBy('timestamp', 'asc').limitToLast(50) 
+                .onSnapshot((snapshot) => {
+                    snapshot.docChanges().forEach((change) => {
+                        const data = change.doc.data(); const docId = change.doc.id;
+                        if (change.type === 'removed') {
+                            const element = document.getElementById(`msg-${docId}`);
+                            if (element) element.remove(); return;
+                        }
+                        if (change.type === 'added') {
+                            renderizarMensaje(data, docId);
+                            if (data.uid !== currentActiveUser.uid && ws && ws.readyState === WebSocket.OPEN) {
+                                ws.send(JSON.stringify({ type: 'read', messageId: docId }));
+                            }
+                        }
+                        if (change.type === 'modified') actualizarReaccionesUi(data, docId);
+                    });
+                    if(snapshot.docChanges().some(c => c.type === 'added')) chatBody.scrollTop = chatBody.scrollHeight;
+                });
+        }
+
+        function renderizarMensaje(data, docId) {
+            const chatBody = document.getElementById('chatBody'); const msgDiv = document.createElement('div');
+            msgDiv.id = `msg-${docId}`;
+            const isMine = data.uid === currentActiveUser.uid;
+            msgDiv.className = isMine ? 'chat-message mine' : 'chat-message others';
+
+            let horaStr = '';
+            if (data.timestamp) {
+                const date = data.timestamp.toDate();
+                horaStr = date.getHours().toString().padStart(2, '0') + ':' + date.getMinutes().toString().padStart(2, '0');
+            }
+
+            let contenidoHtml = data.imgUrl ? `<img src="${data.imgUrl}" style="max-width: 100%; border-radius: 8px; margin-bottom: 5px; cursor: pointer;" onclick="window.open('${data.imgUrl}', '_blank')">` : 
+                                data.audioUrl ? `<audio controls src="${data.audioUrl}" style="margin-bottom: 5px;"></audio>` : 
+                                `<span>${formatearTexto(data.texto)}</span>`;
+
+            msgDiv.innerHTML = `
+                ${contenidoHtml}
+                <div class="message-footer">
+                    <span class="chat-message-time">${horaStr}</span>
+                    ${isMine ? `<span id="tick-${docId}" class="tick-icon tick-grey">✓✓</span>` : ''}
+                </div>
+                <div id="react-container-${docId}">${obtenerHtmlReacciones(data.reacciones)}</div>
+                <div class="reaction-bar" id="reaction-bar-${docId}">
+                    <span onclick="reaccionarMensaje(event, '${docId}', '👍')">👍</span>
+                    <span onclick="reaccionarMensaje(event, '${docId}', '❤️')">❤️</span>
+                    <span onclick="reaccionarMensaje(event, '${docId}', '😂')">😂</span>
+                    <span onclick="reaccionarMensaje(event, '${docId}', '😮')">😮</span>
+                    <span onclick="reaccionarMensaje(event, '${docId}', '😢')">😢</span>
+                    <span onclick="reaccionarMensaje(event, '${docId}', '😡')">😡</span>
+                </div>
+            `;
+
+            msgDiv.onclick = (e) => { e.stopPropagation(); cerrarPaneles(); document.getElementById(`reaction-bar-${docId}`).classList.toggle('active'); };
+            chatBody.appendChild(msgDiv);
+        }
+
+        function obtenerHtmlReacciones(reaccionesObj) {
+            if (!reaccionesObj || Object.keys(reaccionesObj).length === 0) return '';
+            const emojisUsados = new Set(Object.values(reaccionesObj)); let html = `<div class="reaction-badge">`;
+            emojisUsados.forEach(emoji => { html += `<span>${emoji}</span>`; });
+            const total = Object.keys(reaccionesObj).length; if (total > 1) { html += `<span style="color: #555; margin-left: 2px;">${total}</span>`; }
+            return html + `</div>`;
+        }
+
+        function actualizarReaccionesUi(data, docId) {
+            const container = document.getElementById(`react-container-${docId}`);
+            if (container) container.innerHTML = obtenerHtmlReacciones(data.reacciones);
+        }
+
+        function guardarMensajeFirebase(datosExtra) {
+            // 6. ENVIAR A LA SALA PRIVADA
+            db.collection('chats').doc(privateRoomId).collection('mensajes').add({
+                uid: currentActiveUser.uid,
+                ...datosExtra,
+                timestamp: firebase.firestore.FieldValue.serverTimestamp()
+            });
+        }
+
+        function enviarMensaje() {
+            const input = document.getElementById('messageInput'); const texto = input.value.trim();
+            if (texto === '' || !currentActiveUser) return;
+            input.value = ''; input.focus(); cerrarPaneles(); 
+            guardarMensajeFirebase({ texto: texto });
+        }
+    </script>
+</body>
+</html>

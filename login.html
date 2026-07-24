@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Mi Fans - Iniciar Sesión</title>
+    
+    <!-- SDKs de Firebase (v8) -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background: linear-gradient(135deg, #075e54, #128c7e);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100dvh;
+        }
+
+        .auth-container {
+            width: 100%;
+            max-width: 400px;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+
+        .auth-box {
+            background: white;
+            padding: 30px 25px;
+            border-radius: 20px;
+            text-align: center;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.25);
+            width: 100%;
+            box-sizing: border-box;
+        }
+
+        .branding h1 {
+            margin: 0;
+            color: #075e54;
+            font-size: 28px;
+            font-weight: 900;
+            letter-spacing: -1px;
+        }
+
+        .branding p {
+            font-size: 14px;
+            color: #666;
+            margin-top: 5px;
+            margin-bottom: 25px;
+        }
+
+        .input-group {
+            margin-bottom: 15px;
+            text-align: left;
+        }
+
+        .input-group label {
+            display: block;
+            font-size: 12px;
+            font-weight: bold;
+            margin-bottom: 5px;
+            color: #555;
+        }
+
+        .input-group input, .input-group select {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 10px;
+            font-size: 14px;
+            box-sizing: border-box;
+            outline: none;
+            background: #fafafa;
+            transition: 0.2s;
+        }
+
+        .input-group input:focus, .input-group select:focus {
+            border-color: #128c7e;
+            background: #fff;
+            box-shadow: 0 0 0 3px rgba(18, 140, 126, 0.1);
+        }
+
+        .btn-primary {
+            background: #25d366;
+            color: white;
+            border: none;
+            padding: 14px;
+            width: 100%;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            margin-top: 10px;
+            transition: 0.2s;
+        }
+        .btn-primary:active { transform: scale(0.97); }
+
+        .btn-secondary {
+            background: transparent;
+            color: #075e54;
+            border: 2px solid #075e54;
+            padding: 12px;
+            width: 100%;
+            border-radius: 10px;
+            font-size: 14px;
+            font-weight: bold;
+            cursor: pointer;
+            margin-top: 12px;
+            transition: 0.2s;
+            box-sizing: border-box;
+        }
+        .btn-secondary:active { transform: scale(0.97); background: #f0fdf4; }
+
+        .forgot-password {
+            margin-top: 20px;
+            font-size: 13px;
+            color: #075e54;
+            cursor: pointer;
+            font-weight: bold;
+            display: inline-block;
+            text-decoration: underline;
+        }
+
+        .hidden { display: none !important; }
+    </style>
+</head>
+<body>
+
+    <div class="auth-container">
+        
+        <!-- PANTALLA DE INICIO DE SESIÓN -->
+        <div class="auth-box" id="loginScreen">
+            <div class="branding">
+                <h1>Mi Fans</h1>
+                <p>Conecta, interactúa y conoce personas.</p>
+            </div>
+            
+            <div class="input-group">
+                <label>Correo Electrónico</label>
+                <input type="email" id="loginEmail" placeholder="correo@ejemplo.com">
+            </div>
+            <div class="input-group">
+                <label>Contraseña</label>
+                <input type="password" id="loginPassword" placeholder="******">
+            </div>
+
+            <button class="btn-primary" id="btnLogin" onclick="iniciarSesion()">Iniciar Sesión</button>
+            <button class="btn-secondary" onclick="mostrarRegistro()">Crear Cuenta Nueva</button>
+            
+            <div class="forgot-password" onclick="recuperarContrasena()">¿Olvidaste tu contraseña?</div>
+        </div>
+
+        <!-- PANTALLA DE REGISTRO -->
+        <div class="auth-box hidden" id="registerScreen">
+            <div class="branding">
+                <h2 style="margin: 0; color: #075e54;">Únete a Mi Fans</h2>
+                <p>Completa tu perfil para continuar.</p>
+            </div>
+            
+            <div style="max-height: 60vh; overflow-y: auto; padding-right: 5px; margin-bottom: 15px;">
+                <div class="input-group">
+                    <label>Nombre Completo</label>
+                    <input type="text" id="regName" placeholder="Ej. Pedro Rodríguez">
+                </div>
+                <!-- NUEVO CAMPO DE USUARIO -->
+                <div class="input-group">
+                    <label>Nombre de Usuario (Único)</label>
+                    <input type="text" id="regUsername" placeholder="Ej. pedrito_99">
+                </div>
+                <div class="input-group">
+                    <label>Correo Electrónico</label>
+                    <input type="email" id="regEmail" placeholder="correo@ejemplo.com">
+                </div>
+                <div class="input-group">
+                    <label>Contraseña (Mín. 6 caracteres)</label>
+                    <input type="password" id="regPassword" placeholder="******">
+                </div>
+                <div class="input-group">
+                    <label>Ciudad</label>
+                    <input type="text" id="regCity" placeholder="Ej. Ciudad de México">
+                </div>
+                <div class="input-group">
+                    <label>Número Telefónico</label>
+                    <input type="tel" id="regPhone" placeholder="10 dígitos">
+                </div>
+                <div class="input-group">
+                    <label>Sexo</label>
+                    <select id="regSex">
+                        <option value="">Selecciona una opción</option>
+                        <option value="Hombre">Hombre</option>
+                        <option value="Mujer">Mujer</option>
+                    </select>
+                </div>
+                <div class="input-group">
+                    <label>Interés</label>
+                    <select id="regInterest">
+                        <option value="">Selecciona una opción</option>
+                        <option value="Hombre">Hombre</option>
+                        <option value="Mujer">Mujer</option>
+                        <option value="Ambos">Ambos</option>
+                    </select>
+                </div>
+                <div class="input-group">
+                    <label>Atracción / Gustos</label>
+                    <input type="text" id="regAttraction" placeholder="Ej. personas altas, deportistas...">
+                </div>
+            </div>
+
+            <button class="btn-primary" id="btnRegister" onclick="crearCuenta()">Registrarse</button>
+            <button class="btn-secondary" onclick="mostrarLogin()">Volver a Iniciar Sesión</button>
+        </div>
+
+    </div>
+
+    <script>
+        // CONFIGURACIÓN DE FIREBASE (MI FANS)
+        const firebaseConfig = {
+            apiKey: "AIzaSyBTp1VWtvkbSueprfAPhJ0EpxSmKfEwtzc",
+            authDomain: "mi-fans-2d49e.firebaseapp.com",
+            projectId: "mi-fans-2d49e",
+            storageBucket: "mi-fans-2d49e.firebasestorage.app",
+            messagingSenderId: "217541513154",
+            appId: "1:217541513154:web:df760909e97bd3abb8905b"
+        };
+
+        if (!firebase.apps.length) {
+            firebase.initializeApp(firebaseConfig);
+        }
+        const auth = firebase.auth();
+        const db = firebase.firestore();
+
+        // Detectar si ya está logueado para redirigirlo inmediatamente
+        auth.onAuthStateChanged((user) => {
+            if (user) {
+                window.location.href = "index.html";
+            }
+        });
+
+        function mostrarRegistro() {
+            document.getElementById('loginScreen').classList.add('hidden');
+            document.getElementById('registerScreen').classList.remove('hidden');
+        }
+
+        function mostrarLogin() {
+            document.getElementById('registerScreen').classList.add('hidden');
+            document.getElementById('loginScreen').classList.remove('hidden');
+        }
+
+        function iniciarSesion() {
+            const email = document.getElementById('loginEmail').value.trim();
+            const password = document.getElementById('loginPassword').value;
+
+            if (!email || !password) {
+                alert("Ingresa correo y contraseña.");
+                return;
+            }
+
+            const btn = document.getElementById('btnLogin');
+            btn.innerText = "Ingresando...";
+            btn.disabled = true;
+
+            auth.signInWithEmailAndPassword(email, password)
+                .catch((error) => {
+                    btn.innerText = "Iniciar Sesión";
+                    btn.disabled = false;
+                    alert("Error al iniciar sesión: Verifica tus credenciales.");
+                });
+        }
+
+        function crearCuenta() {
+            const nombre = document.getElementById('regName').value.trim();
+            let username = document.getElementById('regUsername').value.trim();
+            const email = document.getElementById('regEmail').value.trim();
+            const password = document.getElementById('regPassword').value;
+            const ciudad = document.getElementById('regCity').value.trim();
+            const telefono = document.getElementById('regPhone').value.trim();
+            const sexo = document.getElementById('regSex').value;
+            const interes = document.getElementById('regInterest').value;
+            const atraccion = document.getElementById('regAttraction').value.trim();
+
+            if (!nombre || !username || !email || !password || !ciudad || !telefono || !sexo || !interes || !atraccion) {
+                alert("Por favor, completa todos los campos del registro.");
+                return;
+            }
+
+            // Limpieza del nombre de usuario: minúsculas, sin espacios y asegurando el @
+            username = username.toLowerCase().replace(/\s+/g, '');
+            if (!username.startsWith('@')) {
+                username = '@' + username;
+            }
+
+            const btn = document.getElementById('btnRegister');
+            btn.innerText = "Registrando...";
+            btn.disabled = true;
+
+            auth.createUserWithEmailAndPassword(email, password)
+                .then((userCredential) => {
+                    const user = userCredential.user;
+                    return db.collection('usuarios').doc(user.uid).set({
+                        uid: user.uid,
+                        nombre: nombre,
+                        username: username,
+                        correo: email,
+                        ciudad: ciudad,
+                        telefono: telefono,
+                        sexo: sexo,
+                        interes: interes,
+                        atraccion: atraccion,
+                        fechaRegistro: firebase.firestore.FieldValue.serverTimestamp()
+                    });
+                })
+                .then(() => {
+                    // El listener onAuthStateChanged redirigirá automáticamente a index.html
+                })
+                .catch((error) => {
+                    btn.innerText = "Registrarse";
+                    btn.disabled = false;
+                    alert("Error al registrarse: " + error.message);
+                });
+        }
+
+        function recuperarContrasena() {
+            const email = prompt("Ingresa tu correo electrónico para enviarte un enlace de restablecimiento:");
+            if (email && email.trim() !== "") {
+                auth.sendPasswordResetEmail(email.trim())
+                    .then(() => {
+                        alert("¡Listo! Se ha enviado un enlace a tu correo para restablecer la contraseña. (Revisa tu carpeta de Spam)");
+                    })
+                    .catch((error) => {
+                        alert("Error: No se pudo enviar el correo. Verifica que la dirección sea correcta.");
+                    });
+            }
+        }
+    </script>
+</body>
+</html>
