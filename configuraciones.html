@@ -31,7 +31,7 @@
             width: 100%; max-width: 500px; height: 100dvh;
             background: var(--of-bg); display: flex; flex-direction: column;
             box-shadow: 0 0 15px rgba(0,0,0,0.05); position: relative;
-            overflow: hidden; /* Para las animaciones de pantallas */
+            overflow: hidden;
         }
 
         /* PANTALLAS (SCREENS) */
@@ -42,7 +42,7 @@
             z-index: 10;
         }
         .screen.active { transform: translateX(0); z-index: 20; }
-        .screen.main-screen { transform: translateX(0); z-index: 10; } /* Menú principal siempre al fondo */
+        .screen.main-screen { transform: translateX(0); z-index: 10; }
 
         .top-header {
             background: var(--of-bg); padding: 15px; display: flex; align-items: center; gap: 15px;
@@ -54,7 +54,8 @@
         .content-scroll { flex-grow: 1; overflow-y: auto; background: #fdfdfd; padding-bottom: 20px;}
 
         /* ESTILOS DEL MENÚ PRINCIPAL */
-        .profile-summary { padding: 20px 15px; display: flex; align-items: center; gap: 15px; border-bottom: 8px solid #f4f4f4; background: var(--of-bg); }
+        .profile-summary { padding: 20px 15px; display: flex; align-items: center; gap: 15px; border-bottom: 8px solid #f4f4f4; background: var(--of-bg); cursor: pointer; transition: 0.2s;}
+        .profile-summary:active { background: #f0f0f0; }
         .profile-avatar { width: 60px; height: 60px; border-radius: 50%; object-fit: cover; border: 2px solid var(--of-border); }
         .profile-info { display: flex; flex-direction: column; }
         .profile-name { font-size: 18px; font-weight: 700; color: var(--of-text); }
@@ -110,7 +111,9 @@
                 <h1 class="header-title">Configuraciones</h1>
             </header>
             <main class="content-scroll">
-                <div class="profile-summary" onclick="openScreen('screen-cuenta')">
+                
+                <!-- ESTE BOTÓN AHORA ABRE TU PERFIL PÚBLICO EN LUGAR DE EDITARLO -->
+                <div class="profile-summary" id="btnPerfilRedireccion">
                     <img src="https://ui-avatars.com/api/?name=User&background=random" id="mainAvatar" class="profile-avatar">
                     <div class="profile-info">
                         <span class="profile-name" id="mainName">Cargando...</span>
@@ -131,7 +134,7 @@
 
                 <div class="settings-group">
                     <div class="settings-item" onclick="openScreen('screen-cuenta')">
-                        <div class="item-left"><svg class="item-icon" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg><span class="item-text">Cuenta</span></div>
+                        <div class="item-left"><svg class="item-icon" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg><span class="item-text">Editar Cuenta</span></div>
                         <div class="item-right"><svg class="chevron-icon" viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"></polyline></svg></div>
                     </div>
                     <div class="settings-item" onclick="openScreen('screen-seguridad')">
@@ -267,7 +270,6 @@
     </div>
 
     <script>
-        // CONFIGURACIÓN DE FIREBASE
         const firebaseConfig = {
             apiKey: "AIzaSyBTp1VWtvkbSueprfAPhJ0EpxSmKfEwtzc",
             authDomain: "mi-fans-2d49e.firebaseapp.com",
@@ -281,21 +283,25 @@
         const auth = firebase.auth();
         const db = firebase.firestore();
 
-        // Variables Globales para optimizar datos (no recargar de base de datos)
         let currentUserAuth = null;
         let currentUserData = null;
 
-        // INICIALIZACIÓN
         auth.onAuthStateChanged((user) => {
             if (user) {
                 currentUserAuth = user;
-                document.getElementById('inpEmail').value = user.email; // El correo intocable
+                document.getElementById('inpEmail').value = user.email; 
                 
-                // Extraer datos de Firestore SOLO UNA VEZ
                 db.collection('usuarios').doc(user.uid).get().then((doc) => {
                     if (doc.exists) {
                         currentUserData = doc.data();
                         actualizarInterfazGlobal();
+                        
+                        // Acción de redirección dinámica al hacer click
+                        document.getElementById('btnPerfilRedireccion').onclick = () => {
+                            if(currentUserData.username) {
+                                window.location.href = '/' + currentUserData.username;
+                            }
+                        };
                     }
                     document.getElementById('loadingScreen').style.display = 'none';
                 }).catch((error) => {
@@ -306,7 +312,6 @@
             }
         });
 
-        // FUNCIONES DE NAVEGACIÓN SPA (Ahorra datos y es muy rápido)
         function openScreen(screenId) {
             document.getElementById(screenId).classList.add('active');
         }
@@ -314,26 +319,21 @@
             document.getElementById(screenId).classList.remove('active');
         }
 
-        // POBLAR INTERFAZ CON DATOS
         function actualizarInterfazGlobal() {
-            // Menú principal
             document.getElementById('mainName').innerText = currentUserData.nombre || 'Usuario';
             document.getElementById('mainHandle').innerText = currentUserData.username ? '@'+currentUserData.username.replace('@','') : '@usuario';
             document.getElementById('mainAvatar').src = currentUserData.fotoPerfil || `https://ui-avatars.com/api/?name=${currentUserData.nombre || 'User'}&background=random`;
             
-            // Saldo
             let saldo = currentUserData.saldo ? parseFloat(currentUserData.saldo).toFixed(2) : "0.00";
             document.getElementById('walletBalance').innerText = `$${saldo}`;
             document.getElementById('walletBalanceBig').innerText = `$${saldo}`;
             document.getElementById('conceptoPago').innerText = `Recarga ${currentUserData.username || currentUserAuth.uid.substring(0,6)}`;
 
-            // Formulario de Cuenta
             document.getElementById('inpNombre').value = currentUserData.nombre || '';
             document.getElementById('inpUsername').value = currentUserData.username || '';
             document.getElementById('inpFoto').value = currentUserData.fotoPerfil || '';
             document.getElementById('inpPortada').value = currentUserData.fotoPortada || '';
 
-            // Formulario de Cobro
             if(currentUserData.datosBancarios) {
                 document.getElementById('inpCobroBanco').value = currentUserData.datosBancarios.banco || '';
                 document.getElementById('inpCobroTitular').value = currentUserData.datosBancarios.titular || '';
@@ -341,22 +341,16 @@
             }
         }
 
-        // ================= ACCIONES EN FIREBASE =================
-
-        // 1. EDITAR CUENTA REALMENTE EN FIREBASE
         function guardarCuenta() {
             const btn = event.target; btn.innerText = "Guardando..."; btn.disabled = true;
-
             const nuevosDatos = {
                 nombre: document.getElementById('inpNombre').value,
                 username: document.getElementById('inpUsername').value,
                 fotoPerfil: document.getElementById('inpFoto').value,
                 fotoPortada: document.getElementById('inpPortada').value
             };
-
             db.collection('usuarios').doc(currentUserAuth.uid).update(nuevosDatos).then(() => {
                 alert("¡Perfil actualizado con éxito!");
-                // Actualizar caché local
                 Object.assign(currentUserData, nuevosDatos);
                 actualizarInterfazGlobal();
                 closeScreen('screen-cuenta');
@@ -364,14 +358,11 @@
               .finally(() => { btn.innerText = "Guardar Cambios"; btn.disabled = false; });
         }
 
-        // 2. CAMBIAR CONTRASEÑA EN FIREBASE AUTH
         function cambiarPassword() {
             const pass1 = document.getElementById('inpPass1').value;
             const pass2 = document.getElementById('inpPass2').value;
-
             if(pass1.length < 6) return alert("La contraseña debe tener al menos 6 caracteres");
             if(pass1 !== pass2) return alert("Las contraseñas no coinciden");
-
             const btn = event.target; btn.innerText = "Actualizando..."; btn.disabled = true;
 
             currentUserAuth.updatePassword(pass1).then(() => {
@@ -388,14 +379,10 @@
             }).finally(() => { btn.innerText = "Actualizar Contraseña"; btn.disabled = false; });
         }
 
-        // 3. VALIDAR SALDO (Crear solicitud en Firestore)
         function validarSaldo() {
             const monto = document.getElementById('inpMontoRecarga').value;
             if(!monto || monto <= 0) return alert("Ingresa un monto válido.");
-
             const btn = event.target; btn.innerText = "Validando..."; btn.disabled = true;
-
-            // Guardar el ticket de validación en una subcolección o colección principal
             db.collection('validaciones_saldo').add({
                 uid: currentUserAuth.uid,
                 username: currentUserData.username || 'Desconocido',
@@ -410,18 +397,13 @@
               .finally(() => { btn.innerText = "Validar Saldo (Notificar Pago)"; btn.disabled = false; });
         }
 
-        // 4. GUARDAR MÉTODOS DE COBRO
         function guardarMetodoCobro() {
             const banco = document.getElementById('inpCobroBanco').value;
             const titular = document.getElementById('inpCobroTitular').value;
             const clabe = document.getElementById('inpCobroClabe').value;
-
             if(!banco || !titular || clabe.length < 10) return alert("Completa todos los datos bancarios correctamente.");
-
             const btn = event.target; btn.innerText = "Guardando..."; btn.disabled = true;
-
             const datosBancarios = { banco, titular, clabe };
-
             db.collection('usuarios').doc(currentUserAuth.uid).update({ datosBancarios }).then(() => {
                 alert("¡Datos bancarios guardados! Aquí recibirás tus ganancias.");
                 currentUserData.datosBancarios = datosBancarios;
@@ -430,7 +412,6 @@
               .finally(() => { btn.innerText = "Guardar Datos Bancarios"; btn.disabled = false; });
         }
 
-        // 5. CERRAR SESIÓN
         function cerrarSesion() {
             if (confirm("¿Seguro que deseas salir?")) {
                 document.getElementById('loadingScreen').style.display = 'flex';
