@@ -55,14 +55,19 @@
         .info-icon { font-size: 20px; color: var(--of-gray); width: 26px; text-align: center; }
         .info-value { font-weight: 700; color: #050505;}
 
-        /* ====== TABS Y PUBLICACIONES DEL PERFIL ====== */
+        /* ====== TABS (PUBLICACIONES Y GALERÍA) ====== */
         .profile-tabs { display: flex; border-top: 1px solid var(--of-border); border-bottom: 1px solid var(--of-border); background: #fff; }
-        .profile-tab { flex: 1; text-align: center; padding: 15px; font-weight: bold; color: var(--of-gray); cursor: pointer; border-bottom: 3px solid transparent; font-size: 15px; }
+        .profile-tab { flex: 1; text-align: center; padding: 15px; font-weight: bold; color: var(--of-gray); cursor: pointer; border-bottom: 3px solid transparent; font-size: 15px; transition: 0.2s; }
         .profile-tab.active { color: var(--of-blue); border-bottom: 3px solid var(--of-blue); }
         
         .profile-posts-area { background: #f4f4f4; min-height: 300px; padding-bottom: 50px; }
         
-        /* ESTILOS DE PUBLICACIONES REUTILIZADOS */
+        /* ESTILOS DE GALERÍA DE FOTOS (TIPO INSTAGRAM/ONLYFANS) */
+        .profile-gallery-area { display: grid; grid-template-columns: repeat(3, 1fr); gap: 2px; background: #fff; padding-bottom: 50px; min-height: 300px; }
+        .gallery-item { width: 100%; aspect-ratio: 1 / 1; object-fit: cover; cursor: pointer; background: #e4e6eb; transition: opacity 0.2s; }
+        .gallery-item:active { opacity: 0.7; }
+
+        /* ESTILOS DE PUBLICACIONES */
         .post-card { background: var(--of-bg); display: flex; flex-direction: column; border-bottom: 10px solid #f4f4f4; }
         .post-header { padding: 15px; display: flex; align-items: center; justify-content: space-between; position: relative;}
         .post-header-left { display: flex; align-items: center; gap: 12px; flex-grow: 1; }
@@ -145,13 +150,19 @@
             </div>
         </div>
 
-        <!-- ====== PESTAÑAS Y ÁREA DE PUBLICACIONES ====== -->
+        <!-- ====== PESTAÑAS (TABS) ====== -->
         <div class="profile-tabs">
-            <div class="profile-tab active">Publicaciones</div>
+            <div class="profile-tab active" id="tab-posts" onclick="cambiarPestanaPerfil('posts')">Publicaciones</div>
+            <div class="profile-tab" id="tab-gallery" onclick="cambiarPestanaPerfil('gallery')">Galería</div>
         </div>
+        
+        <!-- ÁREA DE PUBLICACIONES -->
         <div id="profilePostsArea" class="profile-posts-area">
             <div style="text-align: center; padding: 30px; color: #888;">Cargando publicaciones...</div>
         </div>
+
+        <!-- ÁREA DE GALERÍA (Misma data, 0 costo) -->
+        <div id="profileGalleryArea" class="profile-gallery-area" style="display:none;"></div>
 
     </div>
 
@@ -170,16 +181,15 @@
         const db = firebase.firestore();
         
         let miUsuarioGlobal = null; 
+        let postsGlobalesPerfil = []; // Guarda las publicaciones localmente para la Galería
 
         document.addEventListener('DOMContentLoaded', async () => {
             let currentUserId = null;
             
-            // Promesa para asegurar que verificamos la sesión antes de cargar el perfil
             await new Promise((resolve) => {
                 auth.onAuthStateChanged((user) => {
                     if (user) {
                         currentUserId = user.uid;
-                        // Descargamos datos del usuario local para poder dar "Likes" a los posts
                         db.collection('usuarios').doc(user.uid).get().then(doc => {
                             if(doc.exists) {
                                 miUsuarioGlobal = doc.data();
@@ -330,7 +340,44 @@
         }
 
         // ==========================================
-        // CACHÉ Y CARGA DE PUBLICACIONES EN EL PERFIL
+        // LÓGICA DE PESTAÑAS (TABS)
+        // ==========================================
+        function cambiarPestanaPerfil(tab) {
+            document.getElementById('tab-posts').classList.remove('active');
+            document.getElementById('tab-gallery').classList.remove('active');
+            document.getElementById('profilePostsArea').style.display = 'none';
+            document.getElementById('profileGalleryArea').style.display = 'none';
+
+            if(tab === 'posts') {
+                document.getElementById('tab-posts').classList.add('active');
+                document.getElementById('profilePostsArea').style.display = 'block';
+            } else {
+                document.getElementById('tab-gallery').classList.add('active');
+                renderizarGaleriaPerfil(); // Renderiza usando los datos ya descargados
+            }
+        }
+
+        function renderizarGaleriaPerfil() {
+            const galleryArea = document.getElementById('profileGalleryArea');
+            const fotos = postsGlobalesPerfil.filter(p => p.imagen); // Filtramos solo las que tienen imagen
+
+            if(fotos.length === 0) {
+                galleryArea.style.display = 'block';
+                galleryArea.innerHTML = '<div style="text-align:center; padding:30px; color:#888; width:100%;">Este usuario no ha publicado fotos.</div>';
+                return;
+            }
+
+            galleryArea.style.display = 'grid';
+            let html = '';
+            fotos.forEach(post => {
+                // Al hacer clic, abre la foto en una ventana nueva
+                html += `<img src="${post.imagen}" class="gallery-item" onclick="window.open('${post.imagen}', '_blank')">`;
+            });
+            galleryArea.innerHTML = html;
+        }
+
+        // ==========================================
+        // CACHÉ Y CARGA DE PUBLICACIONES
         // ==========================================
         async function cargarPublicacionesPerfil(uid, isMyProfile) {
             const cacheKey = `posts_perfil_${uid}`;
@@ -340,13 +387,16 @@
             // 1. Carga instantánea desde LocalStorage
             try {
                 const cachedData = localStorage.getItem(cacheKey);
-                if (cachedData) renderizarPostsEnPerfil(JSON.parse(cachedData), uid);
+                if (cachedData) {
+                    postsGlobalesPerfil = JSON.parse(cachedData);
+                    renderizarPostsEnPerfil(postsGlobalesPerfil, uid);
+                }
             } catch(e) {}
 
             const cacheTime = localStorage.getItem(timeKey);
 
             // 2. Ahorro extremo de lecturas: 
-            // Si no es mi perfil y los posts se cargaron hace menos de 5 minutos, NO consultamos Firebase.
+            // Si los posts se cargaron hace menos de 5 minutos, NO consultamos Firebase.
             if (!isMyProfile && cacheTime && (ahora - parseInt(cacheTime) < 300000)) {
                 return; 
             }
@@ -363,9 +413,12 @@
                     postsValidos.push(data);
                 });
 
-                // Ordenamos las publicaciones por fecha en JavaScript para evitar el Indice Compuesto de Firebase
+                // Ordenamos las publicaciones por fecha localmente
                 postsValidos.sort((a, b) => b.timeMs - a.timeMs);
-                postsValidos = postsValidos.slice(0, 15); // Solo mostramos los 15 más recientes en el perfil
+                postsValidos = postsValidos.slice(0, 15); // Máximo 15 publicaciones en el perfil
+
+                // Guardamos en la variable global para que la pestaña Galería pueda usarlos
+                postsGlobalesPerfil = postsValidos;
 
                 // Actualizamos la caché local
                 localStorage.setItem(cacheKey, JSON.stringify(postsValidos));
@@ -400,7 +453,6 @@
                 const tiempoStr = formatearTiempoMs(post.timeMs);
                 const imagenHTML = post.imagen ? `<img src="${post.imagen}" class="post-image">` : '';
                 
-                // Determinar estado del Like (si el usuario está logueado)
                 let isLiked = false;
                 let heartIconClass = 'post-action-icon';
                 let heartTextClass = 'action-group';
@@ -513,6 +565,14 @@
                     tipo: tipoSuscripcion,
                     precioMensual: tipoSuscripcion === 'vip' ? precio : 0,
                     timestamp: firebase.firestore.FieldValue.serverTimestamp()
+                });
+
+                const notifRef = db.collection('usuarios').doc(creatorUid).collection('notificaciones').doc();
+                batch.set(notifRef, {
+                    tipo: 'subscription', autor: myData.nombre || 'Un Fan',
+                    foto: myData.fotoPerfil || `https://ui-avatars.com/api/?name=${myData.nombre || 'F'}&background=random`,
+                    texto: tipoSuscripcion === 'vip' ? `se ha suscrito a tu contenido VIP.` : `ha comenzado a seguirte.`,
+                    leida: false, timestamp: firebase.firestore.FieldValue.serverTimestamp()
                 });
 
                 await batch.commit();
