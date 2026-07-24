@@ -137,7 +137,7 @@
 </head>
 <body>
 
-    <!-- Pantalla de Error Visual -->
+    <!-- Pantalla de Error Visual (Se activa si el usuario no existe) -->
     <div id="errorScreen">
         <span style="font-size: 50px; margin-bottom: 15px;">😕</span>
         <h2>Usuario no encontrado</h2>
@@ -157,7 +157,7 @@
             <h1 class="logo-text">Mi Fans</h1>
             <div class="auth-buttons">
                 <button class="btn-login-public" onclick="window.location.href='/login.html'">Iniciar sesión</button>
-                <button class="btn-register-public" onclick="window.location.href='/login.html'">Registrarte</button>
+                <button class="btn-register-public" onclick="window.location.href='/login.html?view=register'">Registrarte</button>
             </div>
         </div>
 
@@ -219,7 +219,9 @@
         document.addEventListener('DOMContentLoaded', async () => {
             let currentUserId = null;
             auth.onAuthStateChanged((user) => {
-                if (user) currentUserId = user.uid;
+                if (user) {
+                    currentUserId = user.uid;
+                }
             });
 
             const path = decodeURIComponent(window.location.pathname);
@@ -290,7 +292,7 @@
                         document.getElementById('btnEditAvatar').style.display = 'none';
 
                         if(loggedInUserId) {
-                             // Visitante con cuenta
+                             // Visitante con cuenta iniciada
                              const btnMensaje = document.createElement('button');
                              btnMensaje.className = "btn-message-profile";
                              btnMensaje.innerText = "💬 Enviar Mensaje";
