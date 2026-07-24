@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Configuraciones - Mi Fans</title>
     
-    <!-- SDKs de Firebase (v8) -->
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
@@ -18,6 +17,7 @@
             --of-border: #EAEAEA;
             --of-text: #242529;
             --of-danger: #FF3B30;
+            --of-green: #28a745;
         }
 
         body, html {
@@ -34,7 +34,6 @@
             overflow: hidden;
         }
 
-        /* PANTALLAS (SCREENS) */
         .screen {
             position: absolute; top: 0; left: 0; width: 100%; height: 100%;
             background: var(--of-bg); display: flex; flex-direction: column;
@@ -53,7 +52,6 @@
 
         .content-scroll { flex-grow: 1; overflow-y: auto; background: #fdfdfd; padding-bottom: 20px;}
 
-        /* ESTILOS DEL MENÚ PRINCIPAL */
         .profile-summary { padding: 20px 15px; display: flex; align-items: center; gap: 15px; border-bottom: 8px solid #f4f4f4; background: var(--of-bg); cursor: pointer; transition: 0.2s;}
         .profile-summary:active { background: #f0f0f0; }
         .profile-avatar { width: 60px; height: 60px; border-radius: 50%; object-fit: cover; border: 2px solid var(--of-border); }
@@ -72,7 +70,6 @@
         .chevron-icon { width: 18px; height: 18px; fill: none; stroke: var(--of-gray); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
         .logout-text { color: var(--of-danger); font-weight: 600; } .logout-icon { stroke: var(--of-danger); }
 
-        /* ESTILOS DE FORMULARIOS INTERNOS */
         .form-container { padding: 20px 15px; }
         .input-group { margin-bottom: 15px; display: flex; flex-direction: column; gap: 5px; }
         .input-group label { font-size: 13px; font-weight: 600; color: var(--of-gray); }
@@ -82,11 +79,15 @@
         
         .btn-primary { background: var(--of-blue); color: white; border: none; padding: 14px; border-radius: 25px; font-size: 16px; font-weight: bold; cursor: pointer; width: 100%; margin-top: 10px; }
         .btn-primary:active { opacity: 0.8; }
+        
+        .btn-success { background: var(--of-green); color: white; border: none; padding: 14px; border-radius: 25px; font-size: 16px; font-weight: bold; cursor: pointer; width: 100%; margin-top: 10px; }
+        .btn-success:active { opacity: 0.8; }
 
-        /* INFO WALLET */
         .bank-card { background: #f4f9ff; border: 1px solid #cce4ff; border-radius: 10px; padding: 15px; margin-bottom: 20px; }
         .bank-card p { margin: 5px 0; font-size: 14px; color: #333; }
         .bank-card strong { color: var(--of-blue); }
+
+        .earnings-card { background: #f4fff8; border: 1px solid #ccffdd; border-radius: 10px; padding: 15px; margin-bottom: 20px; text-align: center; }
 
         #loadingScreen {
             position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: var(--of-bg);
@@ -112,7 +113,6 @@
             </header>
             <main class="content-scroll">
                 
-                <!-- ESTE BOTÓN AHORA ABRE TU PERFIL PÚBLICO EN LUGAR DE EDITARLO -->
                 <div class="profile-summary" id="btnPerfilRedireccion">
                     <img src="https://ui-avatars.com/api/?name=User&background=random" id="mainAvatar" class="profile-avatar">
                     <div class="profile-info">
@@ -123,7 +123,7 @@
 
                 <div class="settings-group">
                     <div class="settings-item" onclick="openScreen('screen-wallet')">
-                        <div class="item-left"><svg class="item-icon" viewBox="0 0 24 24"><path d="M20 12V8H6a2 2 0 0 1-2-2c0-1.1.9-2 2-2h12v4"></path><path d="M4 6v12c0 1.1.9 2 2 2h14v-8H6a2 2 0 0 1-2-2z"></path></svg><span class="item-text">Mi Wallet (Saldo)</span></div>
+                        <div class="item-left"><svg class="item-icon" viewBox="0 0 24 24"><path d="M20 12V8H6a2 2 0 0 1-2-2c0-1.1.9-2 2-2h12v4"></path><path d="M4 6v12c0 1.1.9 2 2 2h14v-8H6a2 2 0 0 1-2-2z"></path></svg><span class="item-text">Mi Wallet (Saldos)</span></div>
                         <div class="item-right"><span class="item-value" id="walletBalance">$0.00</span><svg class="chevron-icon" viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"></polyline></svg></div>
                     </div>
                     <div class="settings-item" onclick="openScreen('screen-metodo-pago')">
@@ -141,21 +141,9 @@
                         <div class="item-left"><svg class="item-icon" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg><span class="item-text">Seguridad</span></div>
                         <div class="item-right"><svg class="chevron-icon" viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"></polyline></svg></div>
                     </div>
-                    <div class="settings-item" onclick="alert('Políticas de privacidad (Próximamente)')">
-                        <div class="item-left"><svg class="item-icon" viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg><span class="item-text">Privacidad</span></div>
-                        <div class="item-right"><svg class="chevron-icon" viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"></polyline></svg></div>
-                    </div>
-                    <div class="settings-item" onclick="alert('No tienes notificaciones nuevas.')">
-                        <div class="item-left"><svg class="item-icon" viewBox="0 0 24 24"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg><span class="item-text">Notificaciones</span></div>
-                        <div class="item-right"><svg class="chevron-icon" viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"></polyline></svg></div>
-                    </div>
                 </div>
 
                 <div class="settings-group" style="border-bottom: none;">
-                    <div class="settings-item" onclick="alert('Soporte: Contacta a soporte@mifans.com')">
-                        <div class="item-left"><svg class="item-icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"></circle><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path><line x1="12" y1="17" x2="12.01" y2="17"></line></svg><span class="item-text">Ayuda y Soporte</span></div>
-                        <div class="item-right"><svg class="chevron-icon" viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"></polyline></svg></div>
-                    </div>
                     <div class="settings-item" onclick="cerrarSesion()">
                         <div class="item-left"><svg class="item-icon logout-icon" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg><span class="item-text logout-text">Cerrar Sesión</span></div>
                     </div>
@@ -179,12 +167,8 @@
                     <input type="text" id="inpUsername" placeholder="ej. usuario_123">
                 </div>
                 <div class="input-group">
-                    <label>URL Foto de Perfil (Link de imagen)</label>
+                    <label>URL Foto de Perfil</label>
                     <input type="url" id="inpFoto" placeholder="https://...">
-                </div>
-                <div class="input-group">
-                    <label>URL Foto de Portada (Link de imagen)</label>
-                    <input type="url" id="inpPortada" placeholder="https://...">
                 </div>
                 <button class="btn-primary" onclick="guardarCuenta()">Guardar Cambios</button>
             </div>
@@ -198,7 +182,7 @@
             </header>
             <div class="content-scroll form-container">
                 <div class="input-group">
-                    <label>Correo Electrónico (No se puede cambiar)</label>
+                    <label>Correo Electrónico</label>
                     <input type="email" id="inpEmail" disabled>
                 </div>
                 <div class="input-group" style="margin-top: 20px;">
@@ -213,20 +197,32 @@
             </div>
         </div>
 
-        <!-- ================= PANTALLA: WALLET ================= -->
+        <!-- ================= PANTALLA: WALLET (ACTUALIZADA) ================= -->
         <div id="screen-wallet" class="screen">
             <header class="top-header">
                 <svg class="back-icon" viewBox="0 0 24 24" onclick="closeScreen('screen-wallet')"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
                 <h1 class="header-title">Mi Wallet</h1>
             </header>
             <div class="content-scroll form-container">
+                
+                <!-- SECCIÓN DE GANANCIAS (NUEVO) -->
+                <div class="earnings-card">
+                    <p style="color: var(--of-gray); margin-bottom: 5px; font-weight:bold;">💰 TUS GANANCIAS (Retirables)</p>
+                    <h1 id="earningsBalanceBig" style="color: var(--of-green); margin: 0; font-size: 40px;">$0.00</h1>
+                    <p style="font-size:12px; color:#666; margin-top:5px;">Mínimo de retiro: $500.00 MXN</p>
+                    <button class="btn-success" onclick="solicitarRetiro()">Solicitar Retiro a mi Cuenta</button>
+                </div>
+
+                <hr style="border:none; border-top:1px solid var(--of-border); margin: 30px 0;">
+
+                <!-- SECCIÓN DE SALDO PARA GASTAR -->
                 <div style="text-align: center; margin-bottom: 20px;">
-                    <p style="color: var(--of-gray); margin-bottom: 5px;">Saldo Actual</p>
-                    <h1 id="walletBalanceBig" style="color: var(--of-blue); margin: 0; font-size: 40px;">$0.00</h1>
+                    <p style="color: var(--of-gray); margin-bottom: 5px; font-weight:bold;">💳 SALDO PARA GASTAR (Propinas)</p>
+                    <h1 id="walletBalanceBig" style="color: var(--of-blue); margin: 0; font-size: 30px;">$0.00</h1>
                 </div>
                 
                 <h3 style="margin-bottom: 10px;">Recargar Saldo</h3>
-                <p style="font-size: 14px; color: #666;">Para recargar tu cuenta, realiza una transferencia con los siguientes datos:</p>
+                <p style="font-size: 14px; color: #666;">Para recargar, realiza una transferencia con los siguientes datos:</p>
                 <div class="bank-card">
                     <p>Banco: <strong>STP (Sistema de Transferencias)</strong></p>
                     <p>Cuenta CLABE: <strong>646180123456789012</strong></p>
@@ -238,7 +234,7 @@
                     <label>Monto depositado ($)</label>
                     <input type="number" id="inpMontoRecarga" placeholder="Ej. 500">
                 </div>
-                <button class="btn-primary" onclick="validarSaldo()">Validar Saldo (Notificar Pago)</button>
+                <button class="btn-primary" onclick="validarSaldo()">Notificar Recarga Realizada</button>
             </div>
         </div>
 
@@ -249,7 +245,7 @@
                 <h1 class="header-title">Datos para recibir pagos</h1>
             </header>
             <div class="content-scroll form-container">
-                <p style="font-size: 14px; color: #666; margin-bottom: 20px;">Agrega tu cuenta bancaria para recibir tus ganancias. La cuenta debe estar a tu nombre.</p>
+                <p style="font-size: 14px; color: #666; margin-bottom: 20px;">Agrega tu cuenta bancaria para recibir los retiros de tus ganancias. Debe estar a tu nombre.</p>
                 
                 <div class="input-group">
                     <label>Banco</label>
@@ -291,16 +287,13 @@
                 currentUserAuth = user;
                 document.getElementById('inpEmail').value = user.email; 
                 
-                // VIGILAMOS EL SALDO EN TIEMPO REAL CON onSnapshot
                 db.collection('usuarios').doc(user.uid).onSnapshot((doc) => {
                     if (doc.exists) {
                         currentUserData = doc.data();
                         actualizarInterfazGlobal();
                         
                         document.getElementById('btnPerfilRedireccion').onclick = () => {
-                            if(currentUserData.username) {
-                                window.location.href = '/' + currentUserData.username;
-                            }
+                            if(currentUserData.username) window.location.href = '/' + currentUserData.username;
                         };
                     }
                     document.getElementById('loadingScreen').style.display = 'none';
@@ -312,12 +305,8 @@
             }
         });
 
-        function openScreen(screenId) {
-            document.getElementById(screenId).classList.add('active');
-        }
-        function closeScreen(screenId) {
-            document.getElementById(screenId).classList.remove('active');
-        }
+        function openScreen(screenId) { document.getElementById(screenId).classList.add('active'); }
+        function closeScreen(screenId) { document.getElementById(screenId).classList.remove('active'); }
 
         function actualizarInterfazGlobal() {
             document.getElementById('mainName').innerText = currentUserData.nombre || 'Usuario';
@@ -325,14 +314,16 @@
             document.getElementById('mainAvatar').src = currentUserData.fotoPerfil || `https://ui-avatars.com/api/?name=${currentUserData.nombre || 'User'}&background=random`;
             
             let saldo = currentUserData.saldo ? parseFloat(currentUserData.saldo).toFixed(2) : "0.00";
+            let ganancias = currentUserData.ganancias ? parseFloat(currentUserData.ganancias).toFixed(2) : "0.00";
+            
             document.getElementById('walletBalance').innerText = `$${saldo}`;
             document.getElementById('walletBalanceBig').innerText = `$${saldo}`;
+            document.getElementById('earningsBalanceBig').innerText = `$${ganancias}`;
             document.getElementById('conceptoPago').innerText = `Recarga ${currentUserData.username || currentUserAuth.uid.substring(0,6)}`;
 
             document.getElementById('inpNombre').value = currentUserData.nombre || '';
             document.getElementById('inpUsername').value = currentUserData.username || '';
             document.getElementById('inpFoto').value = currentUserData.fotoPerfil || '';
-            document.getElementById('inpPortada').value = currentUserData.fotoPortada || '';
 
             if(currentUserData.datosBancarios) {
                 document.getElementById('inpCobroBanco').value = currentUserData.datosBancarios.banco || '';
@@ -341,40 +332,74 @@
             }
         }
 
+        // ====== SOLICITUD DE RETIRO DE GANANCIAS ======
+        function solicitarRetiro() {
+            const ganancias = currentUserData.ganancias || 0;
+            
+            if (ganancias < 500) {
+                alert("El mínimo para solicitar un retiro son $500.00 MXN.");
+                return;
+            }
+
+            if (!currentUserData.datosBancarios || !currentUserData.datosBancarios.clabe) {
+                alert("Para retirar tu dinero, primero debes vincular una cuenta bancaria.");
+                closeScreen('screen-wallet');
+                openScreen('screen-metodo-pago');
+                return;
+            }
+
+            if (confirm(`¿Estás seguro de solicitar el retiro de tus $${parseFloat(ganancias).toFixed(2)} MXN a tu cuenta ${currentUserData.datosBancarios.banco}?`)) {
+                
+                const batch = db.batch();
+                
+                // 1. Crear el ticket para el Admin
+                const retiroRef = db.collection('solicitudes_retiro').doc();
+                batch.set(retiroRef, {
+                    uid: currentUserAuth.uid,
+                    username: currentUserData.username || '@usuario',
+                    nombre: currentUserData.nombre || 'Usuario',
+                    monto: parseFloat(ganancias),
+                    datosBancarios: currentUserData.datosBancarios,
+                    estado: 'Pendiente',
+                    fecha: firebase.firestore.FieldValue.serverTimestamp()
+                });
+
+                // 2. Vaciar las ganancias a cero (Cero fraude)
+                const userRef = db.collection('usuarios').doc(currentUserAuth.uid);
+                batch.update(userRef, { ganancias: 0 });
+
+                batch.commit().then(() => {
+                    alert("✅ Solicitud enviada correctamente. Recibirás una notificación cuando el administrador complete la transferencia a tu banco.");
+                }).catch((e) => {
+                    alert("Error de conexión: " + e.message);
+                });
+            }
+        }
+
         function guardarCuenta() {
             const btn = event.target; btn.innerText = "Guardando..."; btn.disabled = true;
             const nuevosDatos = {
                 nombre: document.getElementById('inpNombre').value,
                 username: document.getElementById('inpUsername').value,
-                fotoPerfil: document.getElementById('inpFoto').value,
-                fotoPortada: document.getElementById('inpPortada').value
+                fotoPerfil: document.getElementById('inpFoto').value
             };
             db.collection('usuarios').doc(currentUserAuth.uid).update(nuevosDatos).then(() => {
                 alert("¡Perfil actualizado con éxito!");
                 closeScreen('screen-cuenta');
-            }).catch(e => alert("Error: " + e.message))
-              .finally(() => { btn.innerText = "Guardar Cambios"; btn.disabled = false; });
+            }).catch(e => alert("Error: " + e.message)).finally(() => { btn.innerText = "Guardar Cambios"; btn.disabled = false; });
         }
 
         function cambiarPassword() {
-            const pass1 = document.getElementById('inpPass1').value;
-            const pass2 = document.getElementById('inpPass2').value;
+            const pass1 = document.getElementById('inpPass1').value; const pass2 = document.getElementById('inpPass2').value;
             if(pass1.length < 6) return alert("La contraseña debe tener al menos 6 caracteres");
             if(pass1 !== pass2) return alert("Las contraseñas no coinciden");
             const btn = event.target; btn.innerText = "Actualizando..."; btn.disabled = true;
 
             currentUserAuth.updatePassword(pass1).then(() => {
                 alert("¡Contraseña actualizada correctamente!");
-                document.getElementById('inpPass1').value = "";
-                document.getElementById('inpPass2').value = "";
+                document.getElementById('inpPass1').value = ""; document.getElementById('inpPass2').value = "";
                 closeScreen('screen-seguridad');
-            }).catch((error) => {
-                if(error.code === 'auth/requires-recent-login') {
-                    alert("Por seguridad, debes cerrar sesión y volver a entrar para cambiar tu contraseña.");
-                } else {
-                    alert("Error: " + error.message);
-                }
-            }).finally(() => { btn.innerText = "Actualizar Contraseña"; btn.disabled = false; });
+            }).catch((error) => { alert("Error: " + error.message); }).finally(() => { btn.innerText = "Actualizar Contraseña"; btn.disabled = false; });
         }
 
         function validarSaldo() {
@@ -382,17 +407,12 @@
             if(!monto || monto <= 0) return alert("Ingresa un monto válido.");
             const btn = event.target; btn.innerText = "Validando..."; btn.disabled = true;
             db.collection('validaciones_saldo').add({
-                uid: currentUserAuth.uid,
-                username: currentUserData.username || 'Desconocido',
-                montoReclamado: parseFloat(monto),
-                fecha: firebase.firestore.FieldValue.serverTimestamp(),
-                estado: 'Pendiente'
+                uid: currentUserAuth.uid, username: currentUserData.username || 'Desconocido',
+                montoReclamado: parseFloat(monto), fecha: firebase.firestore.FieldValue.serverTimestamp(), estado: 'Pendiente'
             }).then(() => {
                 alert("¡Tu pago está en validación! El saldo se reflejará pronto.");
-                document.getElementById('inpMontoRecarga').value = "";
-                closeScreen('screen-wallet');
-            }).catch(e => alert("Error al notificar: " + e.message))
-              .finally(() => { btn.innerText = "Validar Saldo (Notificar Pago)"; btn.disabled = false; });
+                document.getElementById('inpMontoRecarga').value = ""; closeScreen('screen-wallet');
+            }).catch(e => alert("Error: " + e.message)).finally(() => { btn.innerText = "Notificar Recarga Realizada"; btn.disabled = false; });
         }
 
         function guardarMetodoCobro() {
@@ -405,8 +425,7 @@
             db.collection('usuarios').doc(currentUserAuth.uid).update({ datosBancarios }).then(() => {
                 alert("¡Datos bancarios guardados! Aquí recibirás tus ganancias.");
                 closeScreen('screen-metodo-pago');
-            }).catch(e => alert("Error: " + e.message))
-              .finally(() => { btn.innerText = "Guardar Datos Bancarios"; btn.disabled = false; });
+            }).catch(e => alert("Error: " + e.message)).finally(() => { btn.innerText = "Guardar Datos Bancarios"; btn.disabled = false; });
         }
 
         function cerrarSesion() {
