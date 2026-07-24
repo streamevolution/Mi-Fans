@@ -50,7 +50,7 @@
         }
         .chat-item:active { background: #f9f9f9; }
         
-        .chat-avatar { width: 56px; height: 56px; border-radius: 50%; object-fit: cover; margin-right: 15px; }
+        .chat-avatar { width: 56px; height: 56px; border-radius: 50%; object-fit: cover; margin-right: 15px; background: #e4e6eb;}
         
         .chat-info { flex-grow: 1; overflow: hidden; }
         .chat-name-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; }
@@ -99,7 +99,6 @@
 </head>
 <body>
 
-    <!-- OVERLAY DEL BUSCADOR DE CHAT -->
     <div id="searchOverlay" class="full-modal">
         <div class="search-header">
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#333" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="cursor:pointer;" onclick="cerrarBuscador()">
@@ -122,7 +121,6 @@
                 <svg class="back-icon" viewBox="0 0 24 24"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
                 <h1 class="header-title">Mensajes</h1>
             </div>
-            <!-- Botón del Lápiz (Abre el buscador) -->
             <svg class="action-icon" viewBox="0 0 24 24" onclick="abrirBuscador()">
                 <path d="M12 20h9"></path>
                 <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path>
@@ -168,12 +166,11 @@
         }
 
         // ==========================================
-        // CARGAR EL HISTORIAL DE CHATS (Ahorrando recursos)
+        // CARGAR EL HISTORIAL DE CHATS LEYENDO FOTOS EN TIEMPO REAL
         // ==========================================
         function cargarBandeja(miUid) {
             const chatList = document.getElementById('chatList');
             
-            // Leemos directo de la colección "inbox" que creamos. Cuesta solo 1 lectura por chat.
             db.collection('usuarios').doc(miUid).collection('inbox').orderBy('timestamp', 'desc')
               .onSnapshot((snapshot) => {
                 
@@ -189,26 +186,45 @@
                     return;
                 }
 
-                let html = '';
+                chatList.innerHTML = ''; // Limpiamos antes de rellenar
+                
                 snapshot.forEach(doc => {
                     const chat = doc.data();
+                    const otroUsuarioId = chat.uid; // ID con quien platicamos
+                    
                     const tiempoStr = formatearTiempo(chat.timestamp);
                     const unreadClass = chat.leido === false ? 'unread' : '';
                     const unreadDot = chat.leido === false ? '<span class="unread-dot"></span>' : '';
 
-                    html += `
-                    <div class="chat-item ${unreadClass}" onclick="window.location.href='chat.html?id=${chat.uid}'">
-                        <img src="${chat.foto}" class="chat-avatar">
+                    // Creamos el contenedor del chat con un ID único para inyectar la foto correcta después
+                    const div = document.createElement('div');
+                    div.className = `chat-item ${unreadClass}`;
+                    div.onclick = () => window.location.href=`chat.html?id=${otroUsuarioId}`;
+                    
+                    div.innerHTML = `
+                        <img src="" class="chat-avatar" id="avatar-${otroUsuarioId}">
                         <div class="chat-info">
                             <div class="chat-name-row">
-                                <span class="chat-name">${chat.nombre} ${unreadDot}</span>
+                                <span class="chat-name" id="name-${otroUsuarioId}">Cargando... ${unreadDot}</span>
                                 <span class="chat-time">${tiempoStr}</span>
                             </div>
                             <div class="chat-preview">${chat.ultimoMensaje}</div>
-                        </div>
-                    </div>`;
+                        </div>`;
+                    
+                    chatList.appendChild(div);
+
+                    // CONSULTA RÁPIDA: Leemos directo el perfil del usuario para asegurar foto y nombre actualizados
+                    db.collection('usuarios').doc(otroUsuarioId).get().then(uDoc => {
+                        if(uDoc.exists) {
+                            const uData = uDoc.data();
+                            document.getElementById(`avatar-${otroUsuarioId}`).src = uData.fotoPerfil || `https://ui-avatars.com/api/?name=${encodeURIComponent(uData.nombre || 'U')}&background=random`;
+                            document.getElementById(`name-${otroUsuarioId}`).innerHTML = `${uData.nombre || 'Usuario'} ${unreadDot}`;
+                        } else {
+                            document.getElementById(`avatar-${otroUsuarioId}`).src = `https://ui-avatars.com/api/?name=Usuario+Eliminado&background=random`;
+                            document.getElementById(`name-${otroUsuarioId}`).innerHTML = `Usuario Eliminado ${unreadDot}`;
+                        }
+                    }).catch(e => console.log("Error al cargar datos del chat: ", e));
                 });
-                chatList.innerHTML = html;
             });
         }
 
@@ -247,9 +263,8 @@
                     snapshot.docs.forEach(doc => {
                         const user = doc.data();
                         const userId = doc.id; 
-                        const avatar = user.fotoPerfil || `https://ui-avatars.com/api/?name=${user.nombre || 'U'}&background=random`;
+                        const avatar = user.fotoPerfil || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.nombre || 'U')}&background=random`;
                         
-                        // AL HACER CLIC, LO MANDA DIRECTO AL CHAT PRIVADO
                         html += `
                         <div class="search-result-item" onclick="window.location.href='chat.html?id=${userId}'">
                             <img src="${avatar}" class="search-result-avatar">
