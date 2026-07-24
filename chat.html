@@ -197,7 +197,7 @@
         const db = firebase.firestore();
 
         let currentActiveUser = null;
-        let targetUser = null; // AQUI GUARDAMOS LOS DATOS DE LA OTRA PERSONA
+        let targetUser = null; 
         let unsubscribeListener = null;
         let targetUid = null;
         let privateRoomId = null;
@@ -270,7 +270,7 @@
                 const myDoc = await db.collection('usuarios').doc(user.uid).get();
                 if(myDoc.exists) currentActiveUser = myDoc.data();
 
-                // 2. DESCARGAMOS LOS DATOS REALES DE LA OTRA PERSONA (1 Sola Lectura)
+                // 2. DESCARGAMOS LOS DATOS DE LA OTRA PERSONA
                 const targetDoc = await db.collection('usuarios').doc(targetUid).get();
                 if(targetDoc.exists) {
                     targetUser = targetDoc.data();
@@ -286,6 +286,11 @@
 
                 // Generar la sala privada
                 privateRoomId = currentActiveUser.uid < targetUid ? `${currentActiveUser.uid}_${targetUid}` : `${targetUid}_${currentActiveUser.uid}`;
+
+                // NUEVA INSTRUCCIÓN: Marcar chat como leído en la bandeja para borrar el globo rojo
+                db.collection('usuarios').doc(user.uid).collection('inbox').doc(targetUid).update({
+                    leido: true
+                }).catch(e => console.log("Aún no había historial en bandeja. Todo bien."));
 
                 document.getElementById('loadingScreen').style.display = 'none';
                 conectarWebSocket();
@@ -459,7 +464,7 @@
         }
 
         // ==========================================
-        // GUARDAR MENSAJE Y ACTUALIZAR BANDEJAS (EL HISTORIAL)
+        // GUARDAR MENSAJE Y ACTUALIZAR BANDEJAS
         // ==========================================
         function guardarMensajeFirebase(datosExtra) {
             db.collection('chats').doc(privateRoomId).collection('mensajes').add({
@@ -469,11 +474,9 @@
             });
         }
 
-        // Esta función hace que el chat aparezca en la bandeja (Inbox) de los dos usuarios
         function actualizarBandejas(textoResumen) {
             const batch = db.batch();
             
-            // 1. Guardar en mi bandeja (Mis chats)
             const miInboxRef = db.collection('usuarios').doc(currentActiveUser.uid).collection('inbox').doc(targetUid);
             batch.set(miInboxRef, {
                 uid: targetUid,
@@ -484,7 +487,6 @@
                 leido: true
             });
 
-            // 2. Guardar en la bandeja de la otra persona
             const suInboxRef = db.collection('usuarios').doc(targetUid).collection('inbox').doc(currentActiveUser.uid);
             batch.set(suInboxRef, {
                 uid: currentActiveUser.uid,
