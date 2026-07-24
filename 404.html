@@ -44,10 +44,13 @@
 
         #loadingOverlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: #ffffff; z-index: 1000; display: flex; justify-content: center; align-items: center; flex-direction: column; color: #00AFF0; font-weight: bold; }
         
-        /* BOTONES DE ACCIÓN */
+        /* BOTONES DE ACCIÓN MEJORADOS PARA 2 NIVELES */
         .action-buttons-container { display: flex; gap: 10px; justify-content: center; margin-top: 15px; flex-wrap: wrap; }
-        .btn-message-profile { padding: 12px 20px; background: #f0f2f5; color: #1c1e21; border: none; border-radius: 20px; font-weight: bold; font-size: 14px; cursor: pointer; transition: 0.2s; }
-        .btn-subscribe-profile { padding: 12px 24px; background: #00AFF0; color: white; border: none; border-radius: 20px; font-weight: bold; font-size: 15px; cursor: pointer; box-shadow: 0 2px 8px rgba(0, 175, 240, 0.3); transition: 0.2s; }
+        
+        .btn-message-profile { padding: 12px 20px; background: #f0f2f5; color: #1c1e21; border: none; border-radius: 20px; font-weight: bold; font-size: 14px; cursor: pointer; transition: 0.2s; display:flex; align-items:center; gap:5px; }
+        
+        .btn-subscribe-profile { padding: 12px 24px; background: #00AFF0; color: white; border: none; border-radius: 20px; font-weight: bold; font-size: 15px; cursor: pointer; box-shadow: 0 2px 8px rgba(0, 175, 240, 0.3); transition: 0.2s; display:flex; align-items:center; gap:5px;}
+        
         .btn-subscribe-profile.subscribed { background: #28a745; box-shadow: none; }
         .btn-subscribe-profile.subscribed:active { background: #dc3545; }
         
@@ -96,7 +99,7 @@
             
             <h1 class="profile-name" id="profileName"></h1>
             
-            <!-- CONTENEDOR DE BOTONES DE ACCIÓN Y SUSCRIPCIÓN -->
+            <!-- CONTENEDOR DE BOTONES DINÁMICOS -->
             <div class="action-buttons-container" id="actionButtonsContainer"></div>
             
             <p class="profile-bio" id="profileBio"></p>
@@ -181,7 +184,6 @@
                 if (!doc.exists) throw new Error("Usuario inexistente");
 
                 const data = doc.data();
-                
                 if(data.username) window.history.replaceState(null, '', '/' + data.username);
                 
                 const nombreReal = data.nombre || 'Usuario';
@@ -193,7 +195,6 @@
 
                 if (data.fotoPortada) document.getElementById('coverPhoto').style.backgroundImage = `url('${data.fotoPortada}')`;
                 
-                // === ZONA DE DETALLES ACTUALIZADA ===
                 document.getElementById('profileBio').innerText = data.bio || "👑 Motívame, apóyame o quítate de mi camino. 💯";
                 document.getElementById('infoWork').innerText = data.trabajo || "No especificado";
                 document.getElementById('infoCity').innerText = data.ciudad || "No especificada";
@@ -209,28 +210,62 @@
                         document.getElementById('topNav').style.display = 'flex';
                         document.getElementById('publicAuthBar').style.display = 'none';
 
-                        // 1. VERIFICAR SI YA ESTÁ SUSCRITO (Ahorro de recursos, 1 sola lectura)
+                        // 1. VERIFICAR TIPO DE SUSCRIPCIÓN (1 LECTURA)
                         const subDoc = await db.collection('usuarios').doc(loggedInUserId).collection('suscripciones').doc(uidToLoad).get();
+                        const subTipo = subDoc.exists ? subDoc.data().tipo : null; // 'gratis' o 'vip'
                         
-                        const precioSuscripcion = data.precioSuscripcion || 0; 
-                        const btnSub = document.createElement('button');
+                        const precioSuscripcion = parseFloat(data.precioSuscripcion) || 0; 
 
-                        if (subDoc.exists) {
-                            btnSub.className = "btn-subscribe-profile subscribed";
-                            btnSub.innerText = "✅ Suscrito (Clic para Cancelar)";
-                            // NUEVA FUNCIÓN PARA QUITAR SUSCRIPCIÓN
-                            btnSub.onclick = () => cancelarSuscripcion(uidToLoad, nombreReal, loggedInUserId);
+                        // LÓGICA DE DOS NIVELES
+                        if (precioSuscripcion > 0) {
+                            
+                            // El creador tiene activado el VIP
+                            if (subTipo === 'vip') {
+                                const btnVip = document.createElement('button');
+                                btnVip.className = "btn-subscribe-profile subscribed";
+                                btnVip.innerHTML = "✅ Eres VIP (Cancelar)";
+                                btnVip.onclick = () => cancelarSuscripcion(uidToLoad, nombreReal, loggedInUserId);
+                                actionContainer.appendChild(btnVip);
+                            } else {
+                                // Mostrar botón Gratis
+                                const btnFree = document.createElement('button');
+                                if (subTipo === 'gratis') {
+                                    btnFree.className = "btn-message-profile";
+                                    btnFree.style.background = "#e4e6eb";
+                                    btnFree.innerHTML = "✅ Siguiendo (Dejar)";
+                                    btnFree.onclick = () => cancelarSuscripcion(uidToLoad, nombreReal, loggedInUserId);
+                                } else {
+                                    btnFree.className = "btn-message-profile";
+                                    btnFree.innerHTML = "➕ Seguir Gratis";
+                                    btnFree.onclick = () => procesarSuscripcion(uidToLoad, 0, nombreReal, loggedInUserId, 'gratis');
+                                }
+                                actionContainer.appendChild(btnFree);
+
+                                // Mostrar botón VIP
+                                const btnVip = document.createElement('button');
+                                btnVip.className = "btn-subscribe-profile";
+                                btnVip.innerHTML = `⭐ VIP Exclusivo ($${precioSuscripcion.toFixed(2)}/mes)`;
+                                btnVip.onclick = () => procesarSuscripcion(uidToLoad, precioSuscripcion, nombreReal, loggedInUserId, 'vip');
+                                actionContainer.appendChild(btnVip);
+                            }
+
                         } else {
-                            btnSub.className = "btn-subscribe-profile";
-                            btnSub.innerText = precioSuscripcion > 0 
-                                ? `⭐ Suscribirme ($${parseFloat(precioSuscripcion).toFixed(2)}/mes)`
-                                : `⭐ Suscribirme Gratis`;
-                            btnSub.onclick = () => procesarSuscripcion(uidToLoad, precioSuscripcion, nombreReal, loggedInUserId);
+                            
+                            // El creador SOLO tiene cuenta gratis
+                            const btnFree = document.createElement('button');
+                            if (subTipo === 'gratis' || subTipo === 'vip') {
+                                btnFree.className = "btn-subscribe-profile subscribed";
+                                btnFree.innerHTML = "✅ Suscrito (Cancelar)";
+                                btnFree.onclick = () => cancelarSuscripcion(uidToLoad, nombreReal, loggedInUserId);
+                            } else {
+                                btnFree.className = "btn-subscribe-profile";
+                                btnFree.innerHTML = "⭐ Suscribirme Gratis";
+                                btnFree.onclick = () => procesarSuscripcion(uidToLoad, 0, nombreReal, loggedInUserId, 'gratis');
+                            }
+                            actionContainer.appendChild(btnFree);
                         }
 
-                        actionContainer.appendChild(btnSub);
-
-                        // 2. BOTÓN DE ENVIAR MENSAJE
+                        // BOTÓN DE MENSAJE (Siempre visible)
                         const btnMensaje = document.createElement('button');
                         btnMensaje.className = "btn-message-profile";
                         btnMensaje.innerHTML = "💬 Mensaje";
@@ -255,32 +290,31 @@
             }
         }
 
-        // ====== PROCESAR SUSCRIPCIÓN ======
-        async function procesarSuscripcion(creatorUid, precio, creatorNombre, loggedInUserId) {
+        // ====== PROCESAR SUSCRIPCIÓN (GRATIS O VIP) ======
+        async function procesarSuscripcion(creatorUid, precio, creatorNombre, loggedInUserId, tipoSuscripcion) {
             const userDoc = await db.collection('usuarios').doc(loggedInUserId).get();
             const myData = userDoc.data();
             const saldoActual = myData.saldo || 0;
 
-            if (precio > 0 && saldoActual < precio) {
-                alert(`Saldo insuficiente. La suscripción cuesta $${precio.toFixed(2)} MXN y tienes $${saldoActual.toFixed(2)} MXN en tu Wallet. Recarga en Configuraciones.`);
+            if (tipoSuscripcion === 'vip' && precio > 0 && saldoActual < precio) {
+                alert(`Saldo insuficiente. La suscripción VIP cuesta $${precio.toFixed(2)} MXN y tienes $${saldoActual.toFixed(2)} MXN en tu Wallet. Recarga en Configuraciones.`);
                 return;
             }
 
-            const confirmMsg = precio > 0 
-                ? `¿Confirmas tu suscripción a ${creatorNombre} por $${precio.toFixed(2)} MXN al mes?`
-                : `¿Deseas suscribirte gratis al perfil de ${creatorNombre}?`;
+            const confirmMsg = tipoSuscripcion === 'vip' 
+                ? `¿Confirmas tu suscripción VIP a ${creatorNombre} por $${precio.toFixed(2)} MXN al mes?`
+                : `¿Deseas seguir gratis el perfil de ${creatorNombre}?`;
 
             if (!confirm(confirmMsg)) return;
 
-            document.getElementById('loadingText').innerText = "Procesando suscripción...";
+            document.getElementById('loadingText').innerText = "Procesando...";
             document.getElementById('loadingOverlay').style.display = 'flex';
 
             try {
                 const batch = db.batch();
 
-                if (precio > 0) {
+                if (tipoSuscripcion === 'vip' && precio > 0) {
                     const gananciaCreador = precio * 0.80; 
-
                     const fanRef = db.collection('usuarios').doc(loggedInUserId);
                     batch.update(fanRef, { saldo: firebase.firestore.FieldValue.increment(-precio) });
 
@@ -291,37 +325,39 @@
                 const subRef = db.collection('usuarios').doc(loggedInUserId).collection('suscripciones').doc(creatorUid);
                 batch.set(subRef, {
                     creatorUid: creatorUid,
-                    precioMensual: precio,
+                    tipo: tipoSuscripcion,
+                    precioMensual: tipoSuscripcion === 'vip' ? precio : 0,
                     timestamp: firebase.firestore.FieldValue.serverTimestamp()
                 });
 
                 const notifRef = db.collection('usuarios').doc(creatorUid).collection('notificaciones').doc();
                 batch.set(notifRef, {
-                    tipo: 'subscription', autor: myData.nombre || 'Nuevo Fan',
+                    tipo: 'subscription', autor: myData.nombre || 'Un Fan',
                     foto: myData.fotoPerfil || `https://ui-avatars.com/api/?name=${myData.nombre || 'F'}&background=random`,
-                    texto: `se ha suscrito a tu perfil.`, leida: false, timestamp: firebase.firestore.FieldValue.serverTimestamp()
+                    texto: tipoSuscripcion === 'vip' ? `se ha suscrito a tu contenido VIP.` : `ha comenzado a seguirte.`,
+                    leida: false, timestamp: firebase.firestore.FieldValue.serverTimestamp()
                 });
 
                 await batch.commit();
-                alert(`¡Felicidades! Te has suscrito correctamente a ${creatorNombre}.`);
+                alert(`¡Excelente! Ahora sigues a ${creatorNombre}.`);
                 location.reload();
 
             } catch (error) {
-                alert("Error al procesar la suscripción: " + error.message);
+                alert("Error al procesar: " + error.message);
                 document.getElementById('loadingOverlay').style.display = 'none';
             }
         }
 
-        // ====== CANCELAR SUSCRIPCIÓN (Cero desperdicio, 1 sola eliminación) ======
+        // ====== CANCELAR SUSCRIPCIÓN ======
         async function cancelarSuscripcion(creatorUid, creatorNombre, loggedInUserId) {
-            if (!confirm(`¿Estás seguro de que deseas cancelar tu suscripción a ${creatorNombre}? Perderás el acceso a su contenido exclusivo.`)) return;
+            if (!confirm(`¿Estás seguro de que deseas cancelar o dejar de seguir a ${creatorNombre}? Perderás el acceso a su contenido.`)) return;
 
-            document.getElementById('loadingText').innerText = "Cancelando suscripción...";
+            document.getElementById('loadingText').innerText = "Cancelando...";
             document.getElementById('loadingOverlay').style.display = 'flex';
 
             try {
                 await db.collection('usuarios').doc(loggedInUserId).collection('suscripciones').doc(creatorUid).delete();
-                alert(`Has cancelado exitosamente tu suscripción a ${creatorNombre}.`);
+                alert(`Has dejado de seguir a ${creatorNombre}.`);
                 location.reload();
             } catch (error) {
                 alert("Ocurrió un error al cancelar: " + error.message);
