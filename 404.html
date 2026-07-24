@@ -104,21 +104,38 @@
             display: inline-block; box-shadow: 0 2px 5px rgba(0, 175, 240, 0.3); transition: 0.2s;
         }
         .btn-message-profile:active { transform: scale(0.95); }
+
+        /* NUEVO: PANTALLA DE ERROR 404 INTERNA */
+        #errorScreen {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100dvh; background: #fff;
+            z-index: 2000; display: none; flex-direction: column; justify-content: center;
+            align-items: center; text-align: center; padding: 20px; box-sizing: border-box;
+        }
+        #errorScreen h2 { color: #1c1e21; font-size: 26px; font-weight: 900; margin-bottom: 10px; }
+        #errorScreen p { color: #65676B; font-size: 16px; margin-bottom: 25px; }
+        .btn-home { background: #00AFF0; color: white; padding: 14px 28px; border: none; border-radius: 12px; font-weight: bold; font-size: 16px; cursor: pointer; box-shadow: 0 4px 12px rgba(0,175,240,0.3); }
+        .btn-home:active { transform: scale(0.95); }
     </style>
 </head>
 <body>
 
-    <div class="profile-container">
+    <!-- PANTALLA DE ERROR (Se muestra si el usuario no existe) -->
+    <div id="errorScreen">
+        <span style="font-size: 50px; margin-bottom: 15px;">😕</span>
+        <h2>Usuario no encontrado</h2>
+        <p>El perfil que buscas no existe o el enlace es incorrecto.</p>
+        <button class="btn-home" onclick="window.location.href='/index.html'">Volver al Inicio</button>
+    </div>
+
+    <div class="profile-container" id="mainProfileContainer">
         
-        <!-- Estado de Carga -->
         <div id="loadingOverlay">
             <span style="font-size: 35px; margin-bottom: 12px;">⏳</span>
-            <span id="loadingText" style="font-size: 16px;">Buscando usuario...</span>
+            <span id="loadingText" style="font-size: 16px;">Buscando perfil...</span>
         </div>
 
         <div class="top-nav">
-            <!-- Regresa a index.html usando ruta relativa para evitar problemas en 404 -->
-            <button class="btn-back" onclick="window.location.href='index.html'">
+            <button class="btn-back" onclick="window.location.href='/index.html'">
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
             </button>
         </div>
@@ -173,52 +190,47 @@
         let currentUserId = null;
 
         auth.onAuthStateChanged(async (user) => {
-            // Guardamos el usuario si está logueado, pero permitimos ver perfiles públicos
-            if (user) {
-                currentUserId = user.uid;
-            }
+            if (user) { currentUserId = user.uid; }
 
-            // 1. LEER LA URL INTELIGENTEMENTE
             const path = decodeURIComponent(window.location.pathname);
             const cleanPath = path.replace(/^\/|\/$/g, '');
             const parts = cleanPath.split('/');
             let lastPart = parts[parts.length - 1];
 
-            // Si entra directo a 404.html o la raíz, verificamos si está logueado
+            // Si entra a la raíz o directamente a 404
             if (lastPart === '404' || lastPart === '404.html' || lastPart === '') {
                  if(currentUserId) {
                      cargarDatosPerfil(currentUserId, true);
                  } else {
-                     window.location.href = "login.html";
+                     window.location.href = "/login.html";
                  }
                  return;
             }
 
-            // Si hay algo en la URL (ej. @Juan-Zamora99)
             if (lastPart && lastPart !== '') {
-                // Forzamos el arroba y convertimos a minúsculas
                 let requestedUsername = lastPart.startsWith('@') ? lastPart : '@' + lastPart;
                 requestedUsername = requestedUsername.toLowerCase();
 
                 try {
                     const snapshot = await db.collection('usuarios').where('username', '==', requestedUsername).get();
 
-                    // SI NO EXISTE
                     if (snapshot.empty) {
-                        alert(`El usuario ${requestedUsername} no existe. Verifica el enlace.`);
-                        window.location.href = "index.html"; 
+                        // LA MAGIA AQUÍ: Ya no redirige, solo muestra la pantalla de error visualmente.
+                        document.getElementById('loadingOverlay').style.display = 'none';
+                        document.getElementById('mainProfileContainer').style.display = 'none';
+                        document.getElementById('errorScreen').style.display = 'flex';
                         return;
                     }
 
-                    // CARGAR EL PERFIL DE LA PERSONA DEL ENLACE
                     const userDoc = snapshot.docs[0];
                     const isMyProfile = (currentUserId === userDoc.id);
                     cargarDatosPerfil(userDoc.id, isMyProfile);
 
                 } catch (error) {
                     console.error("Error buscando perfil:", error);
-                    alert("Error de conexión al buscar el perfil.");
-                    window.location.href = "index.html";
+                    document.getElementById('loadingOverlay').style.display = 'none';
+                    document.getElementById('mainProfileContainer').style.display = 'none';
+                    document.getElementById('errorScreen').style.display = 'flex';
                 }
             }
         });
@@ -228,7 +240,6 @@
                 if (doc.exists) {
                     const data = doc.data();
                     
-                    // Asegurar que la barra de direcciones luzca profesional (/@usuario)
                     if(data.username) {
                         window.history.replaceState(null, '', '/' + data.username);
                     }
@@ -246,23 +257,21 @@
                     if(data.telefono) document.getElementById('infoPhone').innerText = data.telefono;
                     if(data.interes) document.getElementById('infoInterest').innerText = data.interes;
 
-                    // SI ESTAMOS VISITANDO A ALGUIEN MÁS (O SI NO ESTAMOS LOGUEADOS)
                     if (!isMyProfile) {
                         document.getElementById('btnEditCover').style.display = 'none';
                         document.getElementById('btnEditAvatar').style.display = 'none';
 
-                        // Solo mostramos el botón de mensaje si estamos logueados
                         if(currentUserId) {
                              const btnMensaje = document.createElement('button');
                              btnMensaje.className = "btn-message-profile";
                              btnMensaje.innerText = "💬 Enviar Mensaje";
-                             btnMensaje.onclick = () => window.location.href = `chat.html?id=${uidToLoad}`;
+                             btnMensaje.onclick = () => window.location.href = `/chat.html?id=${uidToLoad}`;
                              document.getElementById('messageButtonContainer').appendChild(btnMensaje);
                         } else {
                              const btnLogin = document.createElement('button');
                              btnLogin.className = "btn-message-profile";
                              btnLogin.innerText = "🔒 Inicia sesión para mensajear";
-                             btnLogin.onclick = () => window.location.href = `login.html`;
+                             btnLogin.onclick = () => window.location.href = `/login.html`;
                              document.getElementById('messageButtonContainer').appendChild(btnLogin);
                         }
                     }
@@ -270,9 +279,9 @@
                     document.getElementById('loadingOverlay').style.display = 'none';
                 }
             }).catch(e => {
-                console.error("Error al cargar perfil:", e);
-                alert("No se pudo cargar la información del perfil.");
-                window.location.href = "index.html";
+                document.getElementById('loadingOverlay').style.display = 'none';
+                document.getElementById('mainProfileContainer').style.display = 'none';
+                document.getElementById('errorScreen').style.display = 'flex';
             });
         }
 
@@ -302,7 +311,7 @@
                     alert("Error: No se pudo subir la imagen.");
                 }
             } catch (error) {
-                console.error(error); alert("Ocurrió un error en la conexión al subir la imagen.");
+                alert("Ocurrió un error en la conexión al subir la imagen.");
             } finally {
                 document.getElementById('loadingOverlay').style.display = 'none'; event.target.value = ''; 
             }
