@@ -63,7 +63,7 @@
         
         .profile-posts-area { background: #f4f4f4; min-height: 300px; padding-bottom: 50px; }
         
-        /* GALERÍA DE FOTOS */
+        /* GALERÍA DE FOTOS EN GRID */
         .profile-gallery-area { display: grid; grid-template-columns: repeat(3, 1fr); gap: 2px; background: #fff; padding-bottom: 50px; min-height: 300px; }
         .gallery-item { width: 100%; aspect-ratio: 1 / 1; object-fit: cover; cursor: pointer; background: #e4e6eb; transition: opacity 0.2s; }
         .gallery-item:active { opacity: 0.7; }
@@ -107,14 +107,37 @@
 
         .full-modal { position: fixed; top: 0; left: 0; right: 0; bottom: 0; z-index: 3000; display: none; flex-direction: column; animation: slideUp 0.2s ease-out; }
         @keyframes slideUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+
+        /* ====== NUEVO: GALERÍA DESLIZABLE (SWIPER NATIVO CSS) ====== */
+        .swipe-gallery-container {
+            display: flex; overflow-x: auto; scroll-snap-type: x mandatory;
+            width: 100%; height: 100%; scroll-behavior: smooth;
+            -webkit-overflow-scrolling: touch;
+        }
+        .swipe-gallery-container::-webkit-scrollbar { display: none; } /* Oculta la barra de scroll */
+        .swipe-item {
+            flex: 0 0 100%; width: 100%; height: 100%; scroll-snap-align: center;
+            display: flex; justify-content: center; align-items: center;
+        }
+        .swipe-item img { max-width: 100%; max-height: 90vh; object-fit: contain; }
     </style>
 </head>
 <body onclick="cerrarMenus()">
 
-    <!-- MODAL VISOR DE IMÁGENES (GALERÍA INTEGRADA) -->
-    <div id="imageViewerModal" class="full-modal" style="background: rgba(0,0,0,0.95); justify-content: center; align-items: center;">
-        <button onclick="cerrarImagenModal()" style="position: absolute; top: 15px; right: 20px; background: rgba(255,255,255,0.2); border: none; color: white; font-size: 24px; border-radius:50%; width:40px; height:40px; cursor: pointer; display:flex; justify-content:center; align-items:center; z-index:3010;">&times;</button>
-        <img id="imageViewerContent" style="max-width: 100%; max-height: 90vh; object-fit: contain; z-index:3005;">
+    <!-- MODAL VISOR DE IMÁGENES DESLIZABLE (CARRUSEL) -->
+    <div id="imageViewerModal" class="full-modal" style="background: rgba(0,0,0,0.95);">
+        
+        <!-- Botón de Cerrar y Contador -->
+        <div style="position: absolute; top: 15px; left: 20px; right: 20px; display: flex; justify-content: space-between; align-items: center; z-index:3010; pointer-events: none;">
+            <button onclick="cerrarImagenModal()" style="pointer-events: auto; background: rgba(255,255,255,0.2); border: none; color: white; font-size: 24px; border-radius:50%; width:40px; height:40px; cursor: pointer; display:flex; justify-content:center; align-items:center;">&times;</button>
+            <div id="galleryIndicator" style="color: white; font-weight: bold; font-size: 16px; text-shadow: 0 1px 3px rgba(0,0,0,0.8);"></div>
+        </div>
+        
+        <!-- Contenedor de las fotos deslizables -->
+        <div id="swipeGalleryContainer" class="swipe-gallery-container" onscroll="actualizarIndicadorGaleria()">
+            <!-- Las imágenes se inyectan aquí con JS -->
+        </div>
+
     </div>
 
     <div id="errorScreen">
@@ -198,24 +221,59 @@
         const db = firebase.firestore();
         
         let miUsuarioGlobal = null; 
-        let postsGlobalesPerfil = []; 
+        let postsGlobalesPerfil = []; // Almacena temporalmente los posts para no volver a descargar nada
 
         function cerrarMenus() {
             document.querySelectorAll('.post-dropdown').forEach(d => d.classList.remove('active'));
         }
 
         // ==========================================
-        // VISOR DE IMÁGENES INTEGRADO
+        // VISOR DE IMÁGENES DESLIZABLE (0 LECTURAS)
         // ==========================================
-        function abrirImagenModal(url) {
-            document.getElementById('imageViewerContent').src = url;
+        function abrirImagenModal(indexSeleccionado) {
+            const fotos = postsGlobalesPerfil.filter(p => p.imagen);
+            const container = document.getElementById('swipeGalleryContainer');
+            
+            // Construir el HTML de las imágenes deslizando
+            let html = '';
+            fotos.forEach((post, i) => {
+                // Usamos loading="lazy" para que no sature la memoria RAM del celular
+                html += `<div class="swipe-item" id="swipe-img-${i}"><img src="${post.imagen}" loading="lazy"></div>`;
+            });
+            container.innerHTML = html;
+            
+            // Mostrar modal
             document.getElementById('imageViewerModal').style.display = 'flex';
-        }
-        function cerrarImagenModal() {
-            document.getElementById('imageViewerModal').style.display = 'none';
-            document.getElementById('imageViewerContent').src = '';
+            
+            // Mover la vista hasta la foto que el usuario tocó
+            setTimeout(() => {
+                const target = document.getElementById(`swipe-img-${indexSeleccionado}`);
+                if(target) {
+                    container.style.scrollBehavior = 'auto'; // Salto instantáneo
+                    target.scrollIntoView({ inline: 'center' });
+                    container.style.scrollBehavior = 'smooth'; // Regresamos el deslizamiento suave
+                }
+                actualizarIndicadorGaleria();
+            }, 10);
         }
 
+        function cerrarImagenModal() {
+            document.getElementById('imageViewerModal').style.display = 'none';
+            document.getElementById('swipeGalleryContainer').innerHTML = ''; // Limpiamos memoria
+        }
+
+        function actualizarIndicadorGaleria() {
+            const container = document.getElementById('swipeGalleryContainer');
+            if(container.children.length === 0) return;
+            // Calculamos qué foto estamos viendo según el desplazamiento (scroll)
+            const index = Math.round(container.scrollLeft / container.clientWidth) + 1;
+            const total = container.children.length;
+            document.getElementById('galleryIndicator').innerText = `${index} / ${total}`;
+        }
+
+        // ==========================================
+        // INICIO DE LA APLICACIÓN
+        // ==========================================
         document.addEventListener('DOMContentLoaded', async () => {
             let currentUserId = null;
             
@@ -286,7 +344,7 @@
                 const nombreReal = data.nombre || 'Usuario';
                 document.title = `${nombreReal} (@${(data.username || '').replace('@','')}) - Mi Fans`;
                 
-                // CHECK AZUL 
+                // CHECK AZUL
                 const verifiedIcon = `<svg class="verified-badge" viewBox="0 0 24 24" style="width:18px;height:18px;fill:var(--of-blue);"><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10 10-4.5 10-10S17.5 2 12 2zm-1.9 14.7L6 12.6l1.5-1.5 2.6 2.6 6.4-6.4 1.5 1.5-7.9 7.9z"></path></svg>`;
                 document.getElementById('profileName').innerHTML = `${nombreReal} ${verifiedIcon}`;
                 
@@ -376,7 +434,7 @@
         }
 
         // ==========================================
-        // LÓGICA DE PESTAÑAS (TABS) Y GALERÍA
+        // LÓGICA DE PESTAÑAS (TABS)
         // ==========================================
         function cambiarPestanaPerfil(tab) {
             document.getElementById('tab-posts').classList.remove('active');
@@ -405,9 +463,9 @@
 
             galleryArea.style.display = 'grid';
             let html = '';
-            fotos.forEach(post => {
-                // Al hacer clic, abre en modal
-                html += `<img src="${post.imagen}" class="gallery-item" onclick="abrirImagenModal('${post.imagen}')">`;
+            fotos.forEach((post, index) => {
+                // Pasamos el Index exacto a la función para que sepa dónde abrir el carrusel
+                html += `<img src="${post.imagen}" class="gallery-item" onclick="abrirImagenModal(${index})">`;
             });
             galleryArea.innerHTML = html;
         }
@@ -456,8 +514,8 @@
 
                 renderizarPostsEnPerfil(postsValidos, uid);
             } catch (error) {
-                console.error("Error (Puede faltar el índice compuesto en Firebase): ", error);
-                document.getElementById('profilePostsArea').innerHTML = '<div style="text-align: center; padding: 20px; color: #888;">Cargando o no hay publicaciones. (Revisa consola para crear el índice)</div>';
+                console.error("Falta índice compuesto: ", error);
+                document.getElementById('profilePostsArea').innerHTML = '<div style="text-align: center; padding: 20px; color: #888;">Cargando o no hay publicaciones.</div>';
             }
         }
 
@@ -498,13 +556,21 @@
                 return;
             }
 
+            // Extraemos solo las fotos para poder calcular su número (index) en el carrusel
+            const fotosTotales = postsGlobalesPerfil.filter(p => p.imagen);
+
             let html = '';
-            // Check Azul aplicado
             const verifiedSVG = `<svg class="verified-badge" viewBox="0 0 24 24" style="width:16px;height:16px;fill:var(--of-blue);"><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10 10-4.5 10-10S17.5 2 12 2zm-1.9 14.7L6 12.6l1.5-1.5 2.6 2.6 6.4-6.4 1.5 1.5-7.9 7.9z"></path></svg>`;
 
             posts.forEach(post => {
                 const tiempoStr = formatearTiempoMs(post.timeMs);
-                const imagenHTML = post.imagen ? `<img src="${post.imagen}" class="post-image" onclick="abrirImagenModal('${post.imagen}')">` : '';
+                
+                let imagenHTML = '';
+                if (post.imagen) {
+                    // Buscar qué número de foto es dentro de la galería para que el carrusel sepa dónde abrirse
+                    const indexDeFoto = fotosTotales.findIndex(f => f.id === post.id);
+                    imagenHTML = `<img src="${post.imagen}" class="post-image" onclick="abrirImagenModal(${indexDeFoto})">`;
+                }
                 
                 let isLiked = false;
                 let heartIconClass = 'post-action-icon';
@@ -517,7 +583,6 @@
                 }
                 const isLikedStr = isLiked ? 'true' : 'false';
 
-                // MENÚ DE LOS 3 PUNTITOS
                 const isMine = post.uid === miUsuarioGlobal?.uid;
                 const menuOptions = isMine 
                     ? `<div class="post-dropdown-item danger" onclick="eliminarPostPerfil(event, '${post.id}')">Eliminar publicación</div>`
@@ -628,6 +693,14 @@
                     tipo: tipoSuscripcion,
                     precioMensual: tipoSuscripcion === 'vip' ? precio : 0,
                     timestamp: firebase.firestore.FieldValue.serverTimestamp()
+                });
+
+                const notifRef = db.collection('usuarios').doc(creatorUid).collection('notificaciones').doc();
+                batch.set(notifRef, {
+                    tipo: 'subscription', autor: myData.nombre || 'Un Fan',
+                    foto: myData.fotoPerfil || `https://ui-avatars.com/api/?name=${myData.nombre || 'F'}&background=random`,
+                    texto: tipoSuscripcion === 'vip' ? `se ha suscrito a tu contenido VIP.` : `ha comenzado a seguirte.`,
+                    leida: false, timestamp: firebase.firestore.FieldValue.serverTimestamp()
                 });
 
                 await batch.commit();
