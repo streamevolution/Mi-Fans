@@ -46,7 +46,7 @@
 
         .feed-container {
             flex-grow: 1; overflow-y: auto; display: flex; flex-direction: column;
-            padding-bottom: 55px; background: #fdfdfd;
+            padding-bottom: 55px; background: #fdfdfd; scroll-behavior: smooth;
         }
 
         .new-post-box {
@@ -103,6 +103,7 @@
         .tip-btn { display: flex; align-items: center; gap: 6px; color: var(--of-blue); font-size: 14px; font-weight: 700; text-transform: uppercase; cursor: pointer; }
         .tip-btn svg { width: 20px; height: 20px; fill: currentColor; }
 
+        /* BARRA INFERIOR */
         .bottom-nav {
             position: absolute; bottom: 0; left: 0; width: 100%; background: var(--of-bg);
             display: flex; justify-content: space-around; align-items: center; height: 55px;
@@ -111,6 +112,13 @@
         .nav-item { width: 40px; height: 40px; display: flex; justify-content: center; align-items: center; cursor: pointer; transition: 0.2s; position: relative; }
         .nav-icon { width: 26px; height: 26px; fill: none; stroke: var(--of-gray); stroke-width: 1.5; }
         .nav-item.active .nav-icon { stroke: var(--of-blue); fill: rgba(0, 175, 240, 0.1); }
+        
+        /* GLOBITOS DE NOTIFICACIÓN */
+        .nav-badge {
+            position: absolute; top: 4px; right: 2px; background: var(--of-red); color: white;
+            font-size: 10px; font-weight: bold; padding: 2px 5px; border-radius: 10px;
+            border: 2px solid var(--of-bg); display: none; pointer-events: none; z-index: 5;
+        }
 
         #loadingScreen {
             position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: var(--of-bg);
@@ -141,14 +149,23 @@
 
         /* COMPONER POST */
         .compose-header { display: flex; justify-content: space-between; align-items: center; padding: 15px; border-bottom: 1px solid var(--of-border); flex-shrink: 0;}
-        .compose-close { font-size: 16px; font-weight: 600; color: var(--of-text); cursor: pointer; background: none; border: none; }
+        .compose-close { font-size: 16px; font-weight: 600; color: var(--of-text); cursor: pointer; background: none; border: none; display:flex; align-items:center; justify-content:center;}
         .compose-title { font-size: 16px; font-weight: 800; }
         .compose-publish-btn { background: var(--of-blue); color: white; border: none; padding: 8px 16px; border-radius: 20px; font-weight: bold; cursor: pointer; }
         .compose-body { flex-grow: 1; padding: 15px; display: flex; flex-direction: column; overflow-y: auto; }
         .compose-textarea { width: 100%; flex-shrink: 0; min-height: 150px; border: none; outline: none; font-size: 18px; resize: none; font-family: inherit; margin-bottom: 10px; }
-        
         .compose-footer { padding: 15px; border-top: 1px solid var(--of-border); display: flex; align-items: center; gap: 15px; flex-shrink: 0;}
         .btn-adjuntar { display: flex; align-items: center; gap: 8px; color: var(--of-blue); font-weight: bold; cursor: pointer; padding: 8px 12px; background: #f0f8ff; border-radius: 20px; border: none; font-size: 14px; }
+
+        /* NOTIFICACIONES */
+        .notif-list-area { flex-grow: 1; overflow-y: auto; background: #fff; }
+        .notif-item { display: flex; gap: 12px; padding: 15px; border-bottom: 1px solid var(--of-border); cursor: pointer; transition: 0.2s; }
+        .notif-item:active { background: #f9f9f9; }
+        .notif-item.unread { background: #f0f8ff; }
+        .notif-avatar { width: 44px; height: 44px; border-radius: 50%; object-fit: cover; }
+        .notif-content { flex-grow: 1; display: flex; flex-direction: column; justify-content: center;}
+        .notif-text { font-size: 14px; color: var(--of-text); line-height: 1.4;}
+        .notif-time { font-size: 12px; color: var(--of-gray); margin-top: 4px; }
 
         /* HISTORIAS / ESTADOS */
         #createStoryModal { background: #111; color: white; z-index: 4000; }
@@ -214,6 +231,20 @@
         <div id="searchResults" class="search-results-container"></div>
     </div>
 
+    <!-- MODAL DE NOTIFICACIONES (TIPO FACEBOOK) -->
+    <div id="notificationsModal" class="full-modal">
+        <div class="compose-header">
+            <button class="compose-close" onclick="cerrarNotificaciones()">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
+            </button>
+            <span class="compose-title">Notificaciones</span>
+            <div style="width:24px;"></div> <!-- Espaciador para centrar título -->
+        </div>
+        <div class="notif-list-area" id="notifListArea">
+            <!-- Inyectadas con JS -->
+        </div>
+    </div>
+
     <!-- MODAL DE COMPONER PUBLICACIÓN (POST) -->
     <div id="composeModal" class="full-modal">
         <div class="compose-header">
@@ -224,7 +255,6 @@
         <div class="compose-body">
             <textarea id="postText" class="compose-textarea" placeholder="¿Qué estás pensando?"></textarea>
             
-            <!-- Contenedor oculto hasta que se cargue imagen (Sin cuadros negros) -->
             <div id="imagePreviewContainer" style="display:none; position:relative; margin-bottom:10px;">
                 <img id="postImagePreview" style="width:100%; border-radius:12px; object-fit:cover;">
                 <button onclick="removerImagenPost()" style="position:absolute; top:10px; right:10px; background:rgba(0,0,0,0.6); color:white; border:none; border-radius:50%; width:30px; height:30px; font-weight:bold; cursor:pointer;">X</button>
@@ -244,12 +274,12 @@
     </div>
 
     <!-- MODAL DE COMENTARIOS -->
-    <div id="commentsModal" class="full-modal">
+    <div id="commentsModal" class="full-modal" style="background: rgba(0,0,0,0.5);">
         <div style="flex-grow: 1;" onclick="cerrarComentarios()"></div>
         <div class="comments-box">
             <div class="comments-header">
                 <span style="font-weight: 800; font-size: 16px;">Comentarios</span>
-                <button class="compose-close" onclick="cerrarComentarios()">&times;</button>
+                <button class="compose-close" onclick="cerrarComentarios()" style="background:none; border:none; font-size:24px;">&times;</button>
             </div>
             <div class="comments-list" id="commentsListArea">
                 <div style="text-align: center; color: #888; padding: 20px;">Cargando comentarios...</div>
@@ -351,16 +381,18 @@
             <div id="postsArea"></div>
         </main>
 
-        <!-- BARRA INFERIOR -->
+        <!-- BARRA INFERIOR CON GLOBOS ROJOS -->
         <nav class="bottom-nav">
-            <div class="nav-item active">
+            <div class="nav-item active" onclick="irArriba()">
                 <svg class="nav-icon" viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>
             </div>
-            <div class="nav-item">
+            <div class="nav-item" onclick="abrirNotificaciones()">
                 <svg class="nav-icon" viewBox="0 0 24 24"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg>
+                <span id="badge-notif" class="nav-badge">0</span>
             </div>
             <div class="nav-item" onclick="window.location.href='bandeja.html'">
                 <svg class="nav-icon" viewBox="0 0 24 24"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path></svg>
+                <span id="badge-msg" class="nav-badge">0</span>
             </div>
             <div class="nav-item" onclick="window.location.href='configuraciones.html'">
                 <svg class="nav-icon" viewBox="0 0 24 24">
@@ -388,16 +420,10 @@
         const IMGBB_API_KEY = "88f000b35b55f78d1f16c9d9ea939050";
         let miUsuarioGlobal = null; 
 
-        // ==========================================
-        // CERRAR MENÚS AL HACER CLIC FUERA
-        // ==========================================
         function cerrarMenus() {
             document.querySelectorAll('.post-dropdown').forEach(d => d.classList.remove('active'));
         }
 
-        // ==========================================
-        // INICIO DE SESIÓN
-        // ==========================================
         const urlPath = decodeURIComponent(window.location.pathname);
         if (urlPath.includes('@')) {
             document.documentElement.innerHTML = '<div style="height:100vh;width:100vw;display:flex;justify-content:center;align-items:center;background:#fff;color:#00AFF0;font-family:sans-serif;font-weight:bold;font-size:20px;">Cargando perfil...</div>';
@@ -421,11 +447,79 @@
                         document.getElementById('loadingScreen').style.display = 'none';
                         cargarPublicaciones();
                         cargarHistorias();
+                        escucharInsignias(); // Enciende los contadores de notificaciones
                     }).catch(() => { document.getElementById('loadingScreen').style.display = 'none'; });
                 } else {
                     window.location.href = "login.html";
                 }
             });
+        }
+
+        // ==========================================
+        // BOTONES DE LA BARRA INFERIOR (CASITA Y GLOBOS)
+        // ==========================================
+        function irArriba() {
+            document.getElementById('feedContainer').scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        function escucharInsignias() {
+            // Escuchar Mensajes no leídos (Ahorrando recursos, solo busca los "false")
+            db.collection('usuarios').doc(miUsuarioGlobal.uid).collection('inbox')
+              .where('leido', '==', false).onSnapshot(snap => {
+                  const bMsg = document.getElementById('badge-msg');
+                  if(snap.empty) { bMsg.style.display = 'none'; } 
+                  else { bMsg.style.display = 'block'; bMsg.innerText = snap.size; }
+              });
+              
+            // Escuchar Notificaciones no leídas
+            db.collection('usuarios').doc(miUsuarioGlobal.uid).collection('notificaciones')
+              .where('leida', '==', false).onSnapshot(snap => {
+                  const bNotif = document.getElementById('badge-notif');
+                  if(snap.empty) { bNotif.style.display = 'none'; } 
+                  else { bNotif.style.display = 'block'; bNotif.innerText = snap.size; }
+              });
+        }
+
+        // NOTIFICACIONES
+        function abrirNotificaciones() {
+            document.getElementById('notificationsModal').style.display = 'flex';
+            const listArea = document.getElementById('notifListArea');
+            listArea.innerHTML = '<div style="text-align:center; padding:20px; color:#888;">Cargando...</div>';
+            
+            // Descarga las últimas 20 notificaciones (1 sola lectura de bloque)
+            db.collection('usuarios').doc(miUsuarioGlobal.uid).collection('notificaciones')
+              .orderBy('timestamp', 'desc').limit(20).get().then(snap => {
+                  if(snap.empty) {
+                      listArea.innerHTML = '<div style="text-align:center; padding:20px; color:#888;">No tienes notificaciones aún.</div>';
+                      return;
+                  }
+                  
+                  let html = '';
+                  const batch = db.batch(); 
+                  
+                  snap.forEach(doc => {
+                      const n = doc.data();
+                      const timeStr = formatearTiempo(n.timestamp);
+                      const bgClass = n.leida ? '' : 'unread';
+                      
+                      html += `
+                      <div class="notif-item ${bgClass}">
+                          <img src="${n.foto}" class="notif-avatar">
+                          <div class="notif-content">
+                              <span class="notif-text"><strong>${n.autor}</strong> ${n.texto}</span>
+                              <span class="notif-time">${timeStr}</span>
+                          </div>
+                      </div>`;
+                      
+                      if(!n.leida) batch.update(doc.ref, { leida: true }); // Se marcan como leídas sin gastar lecturas
+                  });
+                  listArea.innerHTML = html;
+                  batch.commit();
+              });
+        }
+
+        function cerrarNotificaciones() {
+            document.getElementById('notificationsModal').style.display = 'none';
         }
 
         // ==========================================
@@ -479,10 +573,11 @@
         }
 
         // ==========================================
-        // PUBLICACIONES, LIKES Y MENÚ DE POSTS
+        // PUBLICACIONES Y MENÚ DE POSTS
         // ==========================================
         let archivoImagenSeleccionado = null;
         let postParaComentarId = null;
+        let postParaComentarOwnerUid = null;
 
         function abrirComposeModal() { document.getElementById('composeModal').style.display = 'flex'; document.getElementById('postText').focus(); }
         function cerrarComposeModal() { 
@@ -544,7 +639,6 @@
             return `Hace ${Math.floor(diffSegundos / 86400)} d`;
         }
 
-        // MENÚ DE LOS 3 PUNTITOS (ESCUDO ANTIRREDIRECCIÓN)
         function togglePostMenu(e, postId) {
             e.stopPropagation(); 
             cerrarMenus(); 
@@ -566,8 +660,7 @@
             cerrarMenus();
         }
 
-        // TOGGLE LIKES REALES
-        function toggleLike(postId, isLikedStr) {
+        function toggleLike(postId, isLikedStr, ownerUid) {
             const isLiked = isLikedStr === 'true';
             const postRef = db.collection('publicaciones').doc(postId);
             
@@ -575,7 +668,6 @@
             const btnIcon = document.getElementById('like-icon-' + postId);
             
             if (isLiked) {
-                // Quitar Like
                 btnText.innerText = parseInt(btnText.innerText) - 1;
                 btnText.classList.remove('heart-text-active');
                 btnIcon.classList.remove('heart-filled');
@@ -585,7 +677,6 @@
                     likes: firebase.firestore.FieldValue.increment(-1)
                 }).catch(e => console.log('Error', e));
             } else {
-                // Dar Like
                 btnText.innerText = parseInt(btnText.innerText) + 1;
                 btnText.classList.add('heart-text-active');
                 btnIcon.classList.add('heart-filled');
@@ -594,14 +685,23 @@
                     likedBy: firebase.firestore.FieldValue.arrayUnion(miUsuarioGlobal.uid),
                     likes: firebase.firestore.FieldValue.increment(1)
                 }).catch(e => console.log('Error', e));
+
+                // ENVIAR NOTIFICACIÓN AUTOMÁTICA AL DUEÑO DEL POST (Gasto: 1 escritura)
+                if(ownerUid !== miUsuarioGlobal.uid) {
+                    db.collection('usuarios').doc(ownerUid).collection('notificaciones').add({
+                        tipo: 'like', autor: miUsuarioGlobal.nombre, foto: miUsuarioGlobal.fotoPerfil || `https://ui-avatars.com/api/?name=${miUsuarioGlobal.nombre}&background=random`,
+                        texto: 'le dio "Me encanta" a tu publicación.', leida: false, timestamp: firebase.firestore.FieldValue.serverTimestamp()
+                    });
+                }
             }
         }
 
         // ==========================================
-        // COMENTARIOS
+        // COMENTARIOS Y SUS NOTIFICACIONES
         // ==========================================
-        function abrirComentarios(postId) {
+        function abrirComentarios(postId, ownerUid) {
             postParaComentarId = postId;
+            postParaComentarOwnerUid = ownerUid;
             document.getElementById('commentsModal').style.display = 'flex';
             document.getElementById('commentsListArea').innerHTML = '<div style="text-align: center; color: #888; padding: 20px;">Cargando comentarios...</div>';
             
@@ -628,7 +728,7 @@
                 setTimeout(() => { area.scrollTop = area.scrollHeight; }, 100);
             });
         }
-        function cerrarComentarios() { document.getElementById('commentsModal').style.display = 'none'; postParaComentarId = null; }
+        function cerrarComentarios() { document.getElementById('commentsModal').style.display = 'none'; postParaComentarId = null; postParaComentarOwnerUid = null;}
         
         function enviarComentario() {
             const input = document.getElementById('commentInput');
@@ -646,7 +746,16 @@
             });
             batch.update(postRef, { comments: firebase.firestore.FieldValue.increment(1) });
             
-            batch.commit().then(() => { abrirComentarios(postParaComentarId); });
+            // ENVIAR NOTIFICACIÓN DE COMENTARIO
+            if(postParaComentarOwnerUid && postParaComentarOwnerUid !== miUsuarioGlobal.uid) {
+                const notifRef = db.collection('usuarios').doc(postParaComentarOwnerUid).collection('notificaciones').doc();
+                batch.set(notifRef, {
+                    tipo: 'comment', autor: miUsuarioGlobal.nombre, foto: miUsuarioGlobal.fotoPerfil || `https://ui-avatars.com/api/?name=${miUsuarioGlobal.nombre}&background=random`,
+                    texto: 'comentó tu publicación.', leida: false, timestamp: firebase.firestore.FieldValue.serverTimestamp()
+                });
+            }
+
+            batch.commit().then(() => { abrirComentarios(postParaComentarId, postParaComentarOwnerUid); });
         }
 
         // ==========================================
@@ -696,11 +805,11 @@
                             ${imagenHTML}
                             <div class="post-actions-bar">
                                 <div class="left-actions">
-                                    <div class="${heartTextClass}" onclick="toggleLike('${doc.id}', '${isLikedStr}')">
+                                    <div class="${heartTextClass}" onclick="toggleLike('${doc.id}', '${isLikedStr}', '${post.uid}')">
                                         <svg id="like-icon-${doc.id}" class="${heartIconClass}" viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>
                                         <span id="like-text-${doc.id}">${post.likes || 0}</span>
                                     </div>
-                                    <div class="action-group" onclick="abrirComentarios('${doc.id}')">
+                                    <div class="action-group" onclick="abrirComentarios('${doc.id}', '${post.uid}')">
                                         <svg class="post-action-icon" viewBox="0 0 24 24"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path></svg>
                                         <span>${post.comments || 0}</span>
                                     </div>
