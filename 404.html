@@ -11,53 +11,84 @@
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
 
     <style>
+        :root {
+            --of-blue: #00AFF0;
+            --of-gray: #8A96A3;
+            --of-bg: #FFFFFF;
+            --of-border: #EAEAEA;
+            --of-text: #242529;
+            --of-red: #E0245E;
+        }
+
         body, html { margin: 0; padding: 0; height: 100%; width: 100%; background-color: #f0f2f5; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; overflow: hidden; }
         .profile-container { position: absolute; top: 0; left: 0; width: 100%; height: 100dvh; background: #fff; overflow-y: auto; overflow-x: hidden; display: flex; flex-direction: column; }
         
         .public-auth-bar { display: none; position: sticky; top: 0; width: 100%; background: #ffffff; padding: 12px 15px; box-sizing: border-box; justify-content: space-between; align-items: center; z-index: 100; border-bottom: 1px solid #dbdbdb; box-shadow: 0 2px 10px rgba(0,0,0,0.05); }
         .public-auth-bar .logo-text { font-size: 20px; font-weight: 800; color: #1c1e21; letter-spacing: -0.5px; margin: 0; }
         .public-auth-bar .auth-buttons { display: flex; gap: 8px; }
-        .btn-login-public { background: #00AFF0; color: white; border: none; padding: 7px 14px; border-radius: 8px; font-weight: bold; font-size: 13px; cursor: pointer; }
-        .btn-register-public { background: #fff; color: #00AFF0; border: 1px solid #00AFF0; padding: 7px 14px; border-radius: 8px; font-weight: bold; font-size: 13px; cursor: pointer; }
+        .btn-login-public { background: var(--of-blue); color: white; border: none; padding: 7px 14px; border-radius: 8px; font-weight: bold; font-size: 13px; cursor: pointer; }
+        .btn-register-public { background: #fff; color: var(--of-blue); border: 1px solid var(--of-blue); padding: 7px 14px; border-radius: 8px; font-weight: bold; font-size: 13px; cursor: pointer; }
 
         .top-nav { position: absolute; top: 0; left: 0; width: 100%; padding: 15px; display: flex; align-items: center; justify-content: space-between; box-sizing: border-box; z-index: 50; background: linear-gradient(to bottom, rgba(0,0,0,0.6), transparent); }
         .btn-back { background: rgba(255,255,255,0.3); border: none; color: white; border-radius: 50%; width: 36px; height: 36px; cursor: pointer; display: flex; justify-content: center; align-items: center; backdrop-filter: blur(5px); }
 
         .cover-photo { width: 100%; height: 230px; background-color: #e4e6eb; background-size: cover; background-position: center; position: relative; flex-shrink: 0; z-index: 10; }
         
-        .profile-header { padding: 0 20px; position: relative; margin-top: -60px; text-align: center; border-bottom: 1px solid #ddd; padding-bottom: 25px; margin-bottom: 20px; z-index: 20; }
+        .profile-header { padding: 0 20px; position: relative; margin-top: -60px; text-align: center; z-index: 20; background: #fff; }
         .avatar-container { position: relative; display: inline-block; width: 130px; height: 130px; margin-bottom: 10px; }
         .profile-avatar { width: 130px; height: 130px; border-radius: 50%; border: 4px solid #fff; object-fit: cover; background-color: #e4e6eb; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
         
-        .profile-name { margin: 0; font-size: 26px; color: #1c1e21; font-weight: 800; letter-spacing: -0.5px; display: flex; align-items: center; justify-content: center; }
+        .profile-name { margin: 0; font-size: 26px; color: var(--of-text); font-weight: 800; letter-spacing: -0.5px; display: flex; align-items: center; justify-content: center; }
         .verified-badge { width: 22px; height: 22px; margin-left: 6px; }
         .profile-bio { margin: 15px 20px 0 20px; font-size: 14px; color: #65676B; font-weight: 500; }
         
-        .profile-info-section { padding: 0 20px 30px 20px; flex-grow: 1; }
-        .info-card { background: #fff; border: 1px solid #ddd; border-radius: 12px; padding: 20px; margin-bottom: 15px; box-shadow: 0 2px 5px rgba(0,0,0,0.02); }
-        .info-card h4 { margin: 0 0 20px 0; color: #1c1e21; font-size: 18px; font-weight: 800; border-bottom: 1px solid #eee; padding-bottom: 12px;}
-        .info-row { display: flex; align-items: center; gap: 15px; margin-bottom: 16px; color: #1c1e21; font-size: 15px; }
-        .info-row:last-child { margin-bottom: 0; }
-        .info-icon { font-size: 20px; color: #8c939d; width: 26px; text-align: center; }
-        .info-value { font-weight: 700; color: #050505;}
-        .info-placeholder { color: #8c939d; font-style: italic; font-weight: normal;}
-
-        #loadingOverlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: #ffffff; z-index: 1000; display: flex; justify-content: center; align-items: center; flex-direction: column; color: #00AFF0; font-weight: bold; }
-        
-        /* BOTONES DE ACCIÓN MEJORADOS PARA 2 NIVELES */
-        .action-buttons-container { display: flex; gap: 10px; justify-content: center; margin-top: 15px; flex-wrap: wrap; }
-        
-        .btn-message-profile { padding: 12px 20px; background: #f0f2f5; color: #1c1e21; border: none; border-radius: 20px; font-weight: bold; font-size: 14px; cursor: pointer; transition: 0.2s; display:flex; align-items:center; gap:5px; }
-        
-        .btn-subscribe-profile { padding: 12px 24px; background: #00AFF0; color: white; border: none; border-radius: 20px; font-weight: bold; font-size: 15px; cursor: pointer; box-shadow: 0 2px 8px rgba(0, 175, 240, 0.3); transition: 0.2s; display:flex; align-items:center; gap:5px;}
-        
+        .action-buttons-container { display: flex; gap: 10px; justify-content: center; margin-top: 15px; flex-wrap: wrap; margin-bottom: 20px;}
+        .btn-message-profile { padding: 12px 20px; background: #f0f2f5; color: var(--of-text); border: none; border-radius: 20px; font-weight: bold; font-size: 14px; cursor: pointer; transition: 0.2s; display:flex; align-items:center; gap:5px; }
+        .btn-subscribe-profile { padding: 12px 24px; background: var(--of-blue); color: white; border: none; border-radius: 20px; font-weight: bold; font-size: 15px; cursor: pointer; box-shadow: 0 2px 8px rgba(0, 175, 240, 0.3); transition: 0.2s; display:flex; align-items:center; gap:5px;}
         .btn-subscribe-profile.subscribed { background: #28a745; box-shadow: none; }
-        .btn-subscribe-profile.subscribed:active { background: #dc3545; }
+        
+        .profile-info-section { padding: 0 20px 20px 20px; }
+        .info-card { background: #fff; border: 1px solid var(--of-border); border-radius: 12px; padding: 20px; box-shadow: 0 2px 5px rgba(0,0,0,0.02); }
+        .info-card h4 { margin: 0 0 20px 0; color: var(--of-text); font-size: 18px; font-weight: 800; border-bottom: 1px solid #eee; padding-bottom: 12px;}
+        .info-row { display: flex; align-items: center; gap: 15px; margin-bottom: 16px; color: var(--of-text); font-size: 15px; }
+        .info-row:last-child { margin-bottom: 0; }
+        .info-icon { font-size: 20px; color: var(--of-gray); width: 26px; text-align: center; }
+        .info-value { font-weight: 700; color: #050505;}
+
+        /* ====== TABS Y PUBLICACIONES DEL PERFIL ====== */
+        .profile-tabs { display: flex; border-top: 1px solid var(--of-border); border-bottom: 1px solid var(--of-border); background: #fff; }
+        .profile-tab { flex: 1; text-align: center; padding: 15px; font-weight: bold; color: var(--of-gray); cursor: pointer; border-bottom: 3px solid transparent; font-size: 15px; }
+        .profile-tab.active { color: var(--of-blue); border-bottom: 3px solid var(--of-blue); }
+        
+        .profile-posts-area { background: #f4f4f4; min-height: 300px; padding-bottom: 50px; }
+        
+        /* ESTILOS DE PUBLICACIONES REUTILIZADOS */
+        .post-card { background: var(--of-bg); display: flex; flex-direction: column; border-bottom: 10px solid #f4f4f4; }
+        .post-header { padding: 15px; display: flex; align-items: center; justify-content: space-between; position: relative;}
+        .post-header-left { display: flex; align-items: center; gap: 12px; flex-grow: 1; }
+        .post-header-avatar { width: 44px; height: 44px; border-radius: 50%; object-fit: cover; }
+        .post-author-info { display: flex; flex-direction: column; }
+        .post-author-name { font-weight: 700; color: var(--of-text); font-size: 15px; display: flex; align-items: center; gap: 4px; }
+        .post-author-handle { font-size: 13px; color: var(--of-gray); }
+        .post-time { font-size: 12px; color: var(--of-gray); }
+
+        .post-text { padding: 0 15px 12px 15px; font-size: 15px; color: var(--of-text); line-height: 1.5; white-space: pre-wrap; }
+        .post-image { width: 100%; max-height: 500px; object-fit: cover; display: block; }
+        
+        .post-actions-bar { display: flex; padding: 12px 15px; justify-content: space-between; align-items: center; }
+        .left-actions { display: flex; gap: 20px; align-items: center; }
+        .action-group { display: flex; align-items: center; gap: 6px; color: var(--of-gray); font-size: 14px; font-weight: 500; cursor: pointer; transition: 0.2s; }
+        .post-action-icon { width: 22px; height: 22px; fill: none; stroke: var(--of-gray); stroke-width: 1.5; transition: 0.2s; }
+        .action-group:active { transform: scale(0.9); }
+        .heart-filled { fill: var(--of-red); stroke: var(--of-red); }
+        .heart-text-active { color: var(--of-red); font-weight: 700; }
+
+        #loadingOverlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: #ffffff; z-index: 1000; display: flex; justify-content: center; align-items: center; flex-direction: column; color: var(--of-blue); font-weight: bold; }
         
         #errorScreen { position: absolute; top: 0; left: 0; width: 100%; height: 100dvh; background: #fff; z-index: 2000; display: none; flex-direction: column; justify-content: center; align-items: center; text-align: center; padding: 20px; box-sizing: border-box; }
-        #errorScreen h2 { color: #1c1e21; font-size: 26px; font-weight: 900; margin-bottom: 10px; }
+        #errorScreen h2 { color: var(--of-text); font-size: 26px; font-weight: 900; margin-bottom: 10px; }
         #errorScreen p { color: #65676B; font-size: 16px; margin-bottom: 25px; }
-        .btn-home { background: #00AFF0; color: white; padding: 14px 28px; border: none; border-radius: 12px; font-weight: bold; font-size: 16px; cursor: pointer; box-shadow: 0 4px 12px rgba(0,175,240,0.3); }
+        .btn-home { background: var(--of-blue); color: white; padding: 14px 28px; border: none; border-radius: 12px; font-weight: bold; font-size: 16px; cursor: pointer; box-shadow: 0 4px 12px rgba(0,175,240,0.3); }
     </style>
 </head>
 <body>
@@ -99,9 +130,7 @@
             
             <h1 class="profile-name" id="profileName"></h1>
             
-            <!-- CONTENEDOR DE BOTONES DINÁMICOS -->
             <div class="action-buttons-container" id="actionButtonsContainer"></div>
-            
             <p class="profile-bio" id="profileBio"></p>
         </div>
 
@@ -114,6 +143,14 @@
                 <div class="info-row"><span class="info-icon">📱</span><span>Teléfono: <span class="info-value" id="infoPhone">...</span></span></div>
                 <div class="info-row"><span class="info-icon">💖</span><span>Interesado en: <span class="info-value" id="infoInterest">...</span></span></div>
             </div>
+        </div>
+
+        <!-- ====== PESTAÑAS Y ÁREA DE PUBLICACIONES ====== -->
+        <div class="profile-tabs">
+            <div class="profile-tab active">Publicaciones</div>
+        </div>
+        <div id="profilePostsArea" class="profile-posts-area">
+            <div style="text-align: center; padding: 30px; color: #888;">Cargando publicaciones...</div>
         </div>
 
     </div>
@@ -131,11 +168,29 @@
         if (!firebase.apps.length) { firebase.initializeApp(firebaseConfig); }
         const auth = firebase.auth();
         const db = firebase.firestore();
+        
+        let miUsuarioGlobal = null; 
 
         document.addEventListener('DOMContentLoaded', async () => {
             let currentUserId = null;
-            auth.onAuthStateChanged((user) => {
-                if (user) currentUserId = user.uid;
+            
+            // Promesa para asegurar que verificamos la sesión antes de cargar el perfil
+            await new Promise((resolve) => {
+                auth.onAuthStateChanged((user) => {
+                    if (user) {
+                        currentUserId = user.uid;
+                        // Descargamos datos del usuario local para poder dar "Likes" a los posts
+                        db.collection('usuarios').doc(user.uid).get().then(doc => {
+                            if(doc.exists) {
+                                miUsuarioGlobal = doc.data();
+                                miUsuarioGlobal.uid = user.uid;
+                            }
+                            resolve();
+                        });
+                    } else {
+                        resolve();
+                    }
+                });
             });
 
             const path = decodeURIComponent(window.location.pathname);
@@ -160,23 +215,22 @@
                     const snapshot = await db.collection('usuarios').where('username', '==', requestedUsername).get();
 
                     if (snapshot.empty) {
-                        document.getElementById('loadingOverlay').style.display = 'none';
-                        document.getElementById('mainProfileContainer').style.display = 'none';
-                        document.getElementById('errorScreen').style.display = 'flex';
-                        return;
+                        mostrarError(); return;
                     }
 
                     const userDoc = snapshot.docs[0];
                     const isMyProfile = (currentUserId === userDoc.id);
                     cargarDatosPerfil(userDoc.id, isMyProfile, currentUserId);
 
-                } catch (error) {
-                    document.getElementById('loadingOverlay').style.display = 'none';
-                    document.getElementById('mainProfileContainer').style.display = 'none';
-                    document.getElementById('errorScreen').style.display = 'flex';
-                }
+                } catch (error) { mostrarError(); }
             }
         });
+
+        function mostrarError() {
+            document.getElementById('loadingOverlay').style.display = 'none';
+            document.getElementById('mainProfileContainer').style.display = 'none';
+            document.getElementById('errorScreen').style.display = 'flex';
+        }
 
         async function cargarDatosPerfil(uidToLoad, isMyProfile, loggedInUserId) {
             try {
@@ -190,9 +244,7 @@
                 document.title = `${nombreReal} (@${(data.username || '').replace('@','')}) - Mi Fans`;
                 document.getElementById('profileName').innerHTML = `${nombreReal} <img src="https://i.postimg.cc/wj51JqWm/verificado.png" class="verified-badge" alt="Verificado">`;
                 
-                if (data.fotoPerfil) document.getElementById('profilePhoto').src = data.fotoPerfil;
-                else document.getElementById('profilePhoto').src = `https://ui-avatars.com/api/?name=${nombreReal}&background=random`;
-
+                document.getElementById('profilePhoto').src = data.fotoPerfil || `https://ui-avatars.com/api/?name=${nombreReal}&background=random`;
                 if (data.fotoPortada) document.getElementById('coverPhoto').style.backgroundImage = `url('${data.fotoPortada}')`;
                 
                 document.getElementById('profileBio').innerText = data.bio || "👑 Motívame, apóyame o quítate de mi camino. 💯";
@@ -210,16 +262,11 @@
                         document.getElementById('topNav').style.display = 'flex';
                         document.getElementById('publicAuthBar').style.display = 'none';
 
-                        // 1. VERIFICAR TIPO DE SUSCRIPCIÓN (1 LECTURA)
                         const subDoc = await db.collection('usuarios').doc(loggedInUserId).collection('suscripciones').doc(uidToLoad).get();
-                        const subTipo = subDoc.exists ? subDoc.data().tipo : null; // 'gratis' o 'vip'
-                        
+                        const subTipo = subDoc.exists ? subDoc.data().tipo : null; 
                         const precioSuscripcion = parseFloat(data.precioSuscripcion) || 0; 
 
-                        // LÓGICA DE DOS NIVELES
                         if (precioSuscripcion > 0) {
-                            
-                            // El creador tiene activado el VIP
                             if (subTipo === 'vip') {
                                 const btnVip = document.createElement('button');
                                 btnVip.className = "btn-subscribe-profile subscribed";
@@ -227,7 +274,6 @@
                                 btnVip.onclick = () => cancelarSuscripcion(uidToLoad, nombreReal, loggedInUserId);
                                 actionContainer.appendChild(btnVip);
                             } else {
-                                // Mostrar botón Gratis
                                 const btnFree = document.createElement('button');
                                 if (subTipo === 'gratis') {
                                     btnFree.className = "btn-message-profile";
@@ -241,17 +287,13 @@
                                 }
                                 actionContainer.appendChild(btnFree);
 
-                                // Mostrar botón VIP
                                 const btnVip = document.createElement('button');
                                 btnVip.className = "btn-subscribe-profile";
                                 btnVip.innerHTML = `⭐ VIP Exclusivo ($${precioSuscripcion.toFixed(2)}/mes)`;
                                 btnVip.onclick = () => procesarSuscripcion(uidToLoad, precioSuscripcion, nombreReal, loggedInUserId, 'vip');
                                 actionContainer.appendChild(btnVip);
                             }
-
                         } else {
-                            
-                            // El creador SOLO tiene cuenta gratis
                             const btnFree = document.createElement('button');
                             if (subTipo === 'gratis' || subTipo === 'vip') {
                                 btnFree.className = "btn-subscribe-profile subscribed";
@@ -265,7 +307,6 @@
                             actionContainer.appendChild(btnFree);
                         }
 
-                        // BOTÓN DE MENSAJE (Siempre visible)
                         const btnMensaje = document.createElement('button');
                         btnMensaje.className = "btn-message-profile";
                         btnMensaje.innerHTML = "💬 Mensaje";
@@ -281,16 +322,160 @@
                     document.getElementById('publicAuthBar').style.display = 'none';
                 }
 
+                // LLAMAR A LA CARGA DE PUBLICACIONES
+                cargarPublicacionesPerfil(uidToLoad, isMyProfile);
                 document.getElementById('loadingOverlay').style.display = 'none';
 
-            } catch(e) {
-                document.getElementById('loadingOverlay').style.display = 'none';
-                document.getElementById('mainProfileContainer').style.display = 'none';
-                document.getElementById('errorScreen').style.display = 'flex';
+            } catch(e) { mostrarError(); }
+        }
+
+        // ==========================================
+        // CACHÉ Y CARGA DE PUBLICACIONES EN EL PERFIL
+        // ==========================================
+        async function cargarPublicacionesPerfil(uid, isMyProfile) {
+            const cacheKey = `posts_perfil_${uid}`;
+            const timeKey = `posts_time_${uid}`;
+            const ahora = Date.now();
+            
+            // 1. Carga instantánea desde LocalStorage
+            try {
+                const cachedData = localStorage.getItem(cacheKey);
+                if (cachedData) renderizarPostsEnPerfil(JSON.parse(cachedData), uid);
+            } catch(e) {}
+
+            const cacheTime = localStorage.getItem(timeKey);
+
+            // 2. Ahorro extremo de lecturas: 
+            // Si no es mi perfil y los posts se cargaron hace menos de 5 minutos, NO consultamos Firebase.
+            if (!isMyProfile && cacheTime && (ahora - parseInt(cacheTime) < 300000)) {
+                return; 
+            }
+
+            // 3. Consultar a Firebase (Solo si la caché expiró o es mi propio perfil)
+            try {
+                const snapshot = await db.collection('publicaciones').where('uid', '==', uid).get();
+                
+                let postsValidos = [];
+                snapshot.forEach(doc => {
+                    const data = doc.data();
+                    data.id = doc.id;
+                    data.timeMs = data.timestamp ? data.timestamp.toDate().getTime() : ahora;
+                    postsValidos.push(data);
+                });
+
+                // Ordenamos las publicaciones por fecha en JavaScript para evitar el Indice Compuesto de Firebase
+                postsValidos.sort((a, b) => b.timeMs - a.timeMs);
+                postsValidos = postsValidos.slice(0, 15); // Solo mostramos los 15 más recientes en el perfil
+
+                // Actualizamos la caché local
+                localStorage.setItem(cacheKey, JSON.stringify(postsValidos));
+                localStorage.setItem(timeKey, ahora.toString());
+
+                renderizarPostsEnPerfil(postsValidos, uid);
+            } catch (error) {
+                console.error("Error al buscar posts: ", error);
+                document.getElementById('profilePostsArea').innerHTML = '<div style="text-align: center; padding: 20px; color: #888;">Aún no hay publicaciones.</div>';
             }
         }
 
-        // ====== PROCESAR SUSCRIPCIÓN (GRATIS O VIP) ======
+        function formatearTiempoMs(timeMs) {
+            const diffSegundos = Math.floor((Date.now() - timeMs) / 1000);
+            if (diffSegundos < 60) return `Hace ${diffSegundos} seg`;
+            if (diffSegundos < 3600) return `Hace ${Math.floor(diffSegundos / 60)} min`;
+            if (diffSegundos < 86400) return `Hace ${Math.floor(diffSegundos / 3600)} h`;
+            return `Hace ${Math.floor(diffSegundos / 86400)} d`;
+        }
+
+        function renderizarPostsEnPerfil(posts, perfilUid) {
+            const postsArea = document.getElementById('profilePostsArea');
+            if (!posts || posts.length === 0) {
+                postsArea.innerHTML = '<div style="text-align: center; padding: 30px; color: #888;">Este usuario aún no tiene publicaciones.</div>';
+                return;
+            }
+
+            let html = '';
+            const verifiedSVG = `<svg class="verified-badge" viewBox="0 0 24 24"><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10 10-4.5 10-10S17.5 2 12 2zm-1.9 14.7L6 12.6l1.5-1.5 2.6 2.6 6.4-6.4 1.5 1.5-7.9 7.9z"></path></svg>`;
+
+            posts.forEach(post => {
+                const tiempoStr = formatearTiempoMs(post.timeMs);
+                const imagenHTML = post.imagen ? `<img src="${post.imagen}" class="post-image">` : '';
+                
+                // Determinar estado del Like (si el usuario está logueado)
+                let isLiked = false;
+                let heartIconClass = 'post-action-icon';
+                let heartTextClass = 'action-group';
+                
+                if (miUsuarioGlobal && post.likedBy && post.likedBy.includes(miUsuarioGlobal.uid)) {
+                    isLiked = true;
+                    heartIconClass += ' heart-filled';
+                    heartTextClass += ' heart-text-active';
+                }
+                const isLikedStr = isLiked ? 'true' : 'false';
+
+                html += `
+                    <div class="post-card">
+                        <div class="post-header">
+                            <div class="post-header-left">
+                                <img src="${post.fotoAutor}" class="post-header-avatar">
+                                <div class="post-author-info">
+                                    <span class="post-author-name">${post.autor} ${verifiedSVG}</span>
+                                    <span class="post-author-handle">${post.usuario}</span>
+                                </div>
+                            </div>
+                            <div class="post-header-right">
+                                <div class="post-time">${tiempoStr}</div>
+                            </div>
+                        </div>
+                        <div class="post-text">${post.texto}</div>
+                        ${imagenHTML}
+                        <div class="post-actions-bar">
+                            <div class="left-actions">
+                                <div class="${heartTextClass}" onclick="toggleLikePerfil('${post.id}', '${isLikedStr}', '${perfilUid}')">
+                                    <svg id="like-icon-${post.id}" class="${heartIconClass}" viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>
+                                    <span id="like-text-${post.id}">${post.likes || 0}</span>
+                                </div>
+                                <div class="action-group" onclick="alert('Para comentar, ingresa a la aplicación principal desde el Inicio.')">
+                                    <svg class="post-action-icon" viewBox="0 0 24 24"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path></svg>
+                                    <span>${post.comments || 0}</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>`;
+            });
+            postsArea.innerHTML = html;
+        }
+
+        function toggleLikePerfil(postId, isLikedStr, ownerUid) {
+            if (!miUsuarioGlobal) {
+                alert("Debes iniciar sesión para dar Me gusta.");
+                return window.location.href = '/login.html';
+            }
+
+            const isLiked = isLikedStr === 'true';
+            const postRef = db.collection('publicaciones').doc(postId);
+            const btnText = document.getElementById('like-text-' + postId);
+            const btnIcon = document.getElementById('like-icon-' + postId);
+            
+            if (isLiked) {
+                btnText.innerText = parseInt(btnText.innerText) - 1;
+                btnText.classList.remove('heart-text-active');
+                btnIcon.classList.remove('heart-filled');
+                postRef.update({
+                    likedBy: firebase.firestore.FieldValue.arrayRemove(miUsuarioGlobal.uid),
+                    likes: firebase.firestore.FieldValue.increment(-1)
+                }).catch(e => console.log(e));
+            } else {
+                btnText.innerText = parseInt(btnText.innerText) + 1;
+                btnText.classList.add('heart-text-active');
+                btnIcon.classList.add('heart-filled');
+                postRef.update({
+                    likedBy: firebase.firestore.FieldValue.arrayUnion(miUsuarioGlobal.uid),
+                    likes: firebase.firestore.FieldValue.increment(1)
+                }).catch(e => console.log(e));
+            }
+        }
+
+        // ====== SUSCRIPCIONES ======
         async function procesarSuscripcion(creatorUid, precio, creatorNombre, loggedInUserId, tipoSuscripcion) {
             const userDoc = await db.collection('usuarios').doc(loggedInUserId).get();
             const myData = userDoc.data();
@@ -330,14 +515,6 @@
                     timestamp: firebase.firestore.FieldValue.serverTimestamp()
                 });
 
-                const notifRef = db.collection('usuarios').doc(creatorUid).collection('notificaciones').doc();
-                batch.set(notifRef, {
-                    tipo: 'subscription', autor: myData.nombre || 'Un Fan',
-                    foto: myData.fotoPerfil || `https://ui-avatars.com/api/?name=${myData.nombre || 'F'}&background=random`,
-                    texto: tipoSuscripcion === 'vip' ? `se ha suscrito a tu contenido VIP.` : `ha comenzado a seguirte.`,
-                    leida: false, timestamp: firebase.firestore.FieldValue.serverTimestamp()
-                });
-
                 await batch.commit();
                 alert(`¡Excelente! Ahora sigues a ${creatorNombre}.`);
                 location.reload();
@@ -348,7 +525,6 @@
             }
         }
 
-        // ====== CANCELAR SUSCRIPCIÓN ======
         async function cancelarSuscripcion(creatorUid, creatorNombre, loggedInUserId) {
             if (!confirm(`¿Estás seguro de que deseas cancelar o dejar de seguir a ${creatorNombre}? Perderás el acceso a su contenido.`)) return;
 
