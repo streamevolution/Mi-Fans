@@ -5,85 +5,32 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Mi Perfil - Mi Fans</title>
     
-    <!-- SDKs de Firebase (v8) -->
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
 
     <style>
         body, html {
-            margin: 0; padding: 0; height: 100%; width: 100%;
-            background-color: #f0f2f5;
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-            overflow: hidden; 
+            margin: 0; padding: 0; height: 100%; width: 100%; background-color: #f0f2f5;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; overflow: hidden; 
         }
 
-        .profile-container {
-            position: absolute; top: 0; left: 0; width: 100%; height: 100dvh;
-            background: #fff; overflow-y: auto; overflow-x: hidden;
-            display: flex; flex-direction: column;
-        }
-
-        .top-nav {
-            position: absolute; top: 0; left: 0; width: 100%;
-            padding: 15px; display: flex; align-items: center; justify-content: space-between;
-            box-sizing: border-box; z-index: 50;
-            background: linear-gradient(to bottom, rgba(0,0,0,0.6), transparent);
-        }
-        .btn-back {
-            background: rgba(255,255,255,0.3); border: none; color: white;
-            border-radius: 50%; width: 36px; height: 36px; cursor: pointer;
-            display: flex; justify-content: center; align-items: center;
-            backdrop-filter: blur(5px);
-        }
-
-        .cover-photo {
-            width: 100%; height: 230px; background-color: #ccc;
-            background-image: url('https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=2564&auto=format&fit=crop');
-            background-size: cover; background-position: center; position: relative; flex-shrink: 0; z-index: 10;
-        }
-        
-        .btn-edit-cover {
-            position: absolute; top: 15px; right: 15px;
-            background: rgba(255,255,255,0.95); border: none; padding: 8px 12px;
-            border-radius: 8px; font-weight: bold; font-size: 13px; cursor: pointer;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.3); display: flex; align-items: center; gap: 5px;
-            z-index: 60; color: #111; text-decoration: none;
-        }
+        .profile-container { position: absolute; top: 0; left: 0; width: 100%; height: 100dvh; background: #fff; overflow-y: auto; overflow-x: hidden; display: flex; flex-direction: column; }
+        .top-nav { position: absolute; top: 0; left: 0; width: 100%; padding: 15px; display: flex; align-items: center; justify-content: space-between; box-sizing: border-box; z-index: 50; background: linear-gradient(to bottom, rgba(0,0,0,0.6), transparent); }
+        .btn-back { background: rgba(255,255,255,0.3); border: none; color: white; border-radius: 50%; width: 36px; height: 36px; cursor: pointer; display: flex; justify-content: center; align-items: center; backdrop-filter: blur(5px); }
+        .cover-photo { width: 100%; height: 230px; background-color: #ccc; background-image: url('https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=2564&auto=format&fit=crop'); background-size: cover; background-position: center; position: relative; flex-shrink: 0; z-index: 10; }
+        .btn-edit-cover { position: absolute; top: 15px; right: 15px; background: rgba(255,255,255,0.95); border: none; padding: 8px 12px; border-radius: 8px; font-weight: bold; font-size: 13px; cursor: pointer; box-shadow: 0 2px 10px rgba(0,0,0,0.3); display: flex; align-items: center; gap: 5px; z-index: 60; color: #111; text-decoration: none; }
         .btn-edit-cover:active { transform: scale(0.95); }
-
-        .profile-header {
-            padding: 0 20px; position: relative; margin-top: -60px;
-            text-align: center; border-bottom: 1px solid #ddd; padding-bottom: 25px;
-            margin-bottom: 20px; z-index: 20;
-        }
-        .avatar-container {
-            position: relative; display: inline-block; width: 130px; height: 130px; margin-bottom: 10px;
-        }
-        .profile-avatar {
-            width: 130px; height: 130px; border-radius: 50%;
-            border: 4px solid #fff; object-fit: cover; background-color: #e4e6eb; box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-        }
-        .btn-edit-avatar {
-            position: absolute; bottom: 5px; right: 5px; background: #e4e6eb; border: 2px solid #fff; width: 36px; height: 36px;
-            border-radius: 50%; display: flex; justify-content: center; align-items: center; cursor: pointer;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.2); font-size: 18px; z-index: 30; text-decoration: none; color: #111;
-        }
+        .profile-header { padding: 0 20px; position: relative; margin-top: -60px; text-align: center; border-bottom: 1px solid #ddd; padding-bottom: 25px; margin-bottom: 20px; z-index: 20; }
+        .avatar-container { position: relative; display: inline-block; width: 130px; height: 130px; margin-bottom: 10px; }
+        .profile-avatar { width: 130px; height: 130px; border-radius: 50%; border: 4px solid #fff; object-fit: cover; background-color: #e4e6eb; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        .btn-edit-avatar { position: absolute; bottom: 5px; right: 5px; background: #e4e6eb; border: 2px solid #fff; width: 36px; height: 36px; border-radius: 50%; display: flex; justify-content: center; align-items: center; cursor: pointer; box-shadow: 0 2px 5px rgba(0,0,0,0.2); font-size: 18px; z-index: 30; text-decoration: none; color: #111; }
         .btn-edit-avatar:active { transform: scale(0.95); }
-        
-        .profile-name { 
-            margin: 0; font-size: 26px; color: #1c1e21; font-weight: 800; letter-spacing: -0.5px;
-            display: flex; align-items: center; justify-content: center;
-        }
-
+        .profile-name { margin: 0; font-size: 26px; color: #1c1e21; font-weight: 800; letter-spacing: -0.5px; display: flex; align-items: center; justify-content: center; }
         .verified-badge { width: 22px; height: 22px; margin-left: 6px; }
         .profile-bio { margin: 8px 20px 0 20px; font-size: 14px; color: #65676B; font-weight: 500; }
-
         .profile-info-section { padding: 0 20px 30px 20px; flex-grow: 1; }
-        .info-card {
-            background: #fff; border: 1px solid #ddd; border-radius: 12px;
-            padding: 20px; margin-bottom: 15px; box-shadow: 0 2px 5px rgba(0,0,0,0.02);
-        }
+        .info-card { background: #fff; border: 1px solid #ddd; border-radius: 12px; padding: 20px; margin-bottom: 15px; box-shadow: 0 2px 5px rgba(0,0,0,0.02); }
         .info-card h4 { margin: 0 0 20px 0; color: #1c1e21; font-size: 18px; font-weight: 800; border-bottom: 1px solid #eee; padding-bottom: 12px;}
         .info-row { display: flex; align-items: center; gap: 15px; margin-bottom: 16px; color: #1c1e21; font-size: 15px; }
         .info-row:last-child { margin-bottom: 0; }
@@ -91,18 +38,8 @@
         .info-value { font-weight: 700; color: #050505;}
         .info-placeholder { color: #8c939d; font-style: italic; font-weight: normal;}
 
-        #loadingOverlay {
-            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(255,255,255,0.85); z-index: 1000; display: flex;
-            justify-content: center; align-items: center; flex-direction: column;
-            color: #00AFF0; font-weight: bold; backdrop-filter: blur(4px);
-        }
-        
-        .btn-message-profile {
-            margin-top: 15px; padding: 12px 24px; background: #00AFF0; color: white; border: none; 
-            border-radius: 8px; font-weight: bold; font-size: 15px; cursor: pointer; width: auto; 
-            display: inline-block; box-shadow: 0 2px 5px rgba(0, 175, 240, 0.3); transition: 0.2s;
-        }
+        #loadingOverlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255,255,255,0.85); z-index: 1000; display: flex; justify-content: center; align-items: center; flex-direction: column; color: #00AFF0; font-weight: bold; backdrop-filter: blur(4px); }
+        .btn-message-profile { margin-top: 15px; padding: 12px 24px; background: #00AFF0; color: white; border: none; border-radius: 8px; font-weight: bold; font-size: 15px; cursor: pointer; width: auto; display: inline-block; box-shadow: 0 2px 5px rgba(0, 175, 240, 0.3); transition: 0.2s; }
         .btn-message-profile:active { transform: scale(0.95); }
     </style>
 </head>
@@ -110,25 +47,21 @@
 
     <div class="profile-container">
         
-        <!-- Estado de Carga -->
         <div id="loadingOverlay">
             <span style="font-size: 35px; margin-bottom: 12px;">⏳</span>
             <span id="loadingText" style="font-size: 16px;">Buscando usuario...</span>
         </div>
 
         <div class="top-nav">
-            <!-- NOTA: Ruta absoluta /index.html por si estamos en /@usuario -->
             <button class="btn-back" onclick="window.location.href='/index.html'">
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
             </button>
         </div>
 
-        <!-- PORTADA -->
         <div class="cover-photo" id="coverPhoto">
             <label class="btn-edit-cover" for="coverInput" id="btnEditCover">📷 Cambiar Portada</label>
         </div>
 
-        <!-- PERFIL HEADER -->
         <div class="profile-header">
             <div class="avatar-container">
                 <img src="https://ui-avatars.com/api/?name=Cargando&background=random" id="profilePhoto" class="profile-avatar">
@@ -141,7 +74,6 @@
             <p class="profile-bio">👑 Motívame, apóyame o quítate de mi camino. 💯</p>
         </div>
 
-        <!-- INFORMACIÓN -->
         <div class="profile-info-section">
             <div class="info-card">
                 <h4>Detalles</h4>
@@ -177,51 +109,43 @@
 
         auth.onAuthStateChanged(async (user) => {
             if (!user) {
-                // Ruta absoluta
                 window.location.href = "/login.html";
                 return;
             }
             currentUserId = user.uid;
 
-            // 1. LEER LA URL CON EL TRUCO DEL 404
             const path = decodeURIComponent(window.location.pathname);
-            // Quitamos las diagonales del principio y final
             const cleanPath = path.replace(/^\/|\/$/g, '');
             const parts = cleanPath.split('/');
             let lastPart = parts[parts.length - 1];
 
-            // Si el usuario entra directamente a /perfil, /404, o /404.html por accidente, omitimos la búsqueda de arroba
             if (lastPart === '404' || lastPart === '404.html' || lastPart === 'perfil') {
                 lastPart = '';
             }
 
             if (lastPart && lastPart !== '') {
-                // Si la URL es mifans.com/juan, le forzamos el arroba para que busque @juan
                 let requestedUsername = lastPart.startsWith('@') ? lastPart : '@' + lastPart;
                 requestedUsername = requestedUsername.toLowerCase();
 
-                // 2. BUSCAR AL USUARIO EN LA BASE DE DATOS
                 try {
                     const snapshot = await db.collection('usuarios').where('username', '==', requestedUsername).get();
 
                     if (snapshot.empty) {
-                        alert(`El usuario ${requestedUsername} no existe o no se ha registrado.`);
+                        alert(`El usuario ${requestedUsername} no existe.`);
                         window.location.href = "/index.html"; 
                         return;
                     }
 
-                    // 3. CARGAR EL PERFIL ENCONTRADO
                     const userDoc = snapshot.docs[0];
                     const isMyProfile = (userDoc.id === currentUserId);
                     cargarDatosPerfil(userDoc.id, isMyProfile);
 
                 } catch (error) {
                     console.error("Error buscando perfil:", error);
-                    alert("Hubo un error al buscar el perfil. Revisa tu conexión.");
+                    alert("Error de conexión al buscar el perfil.");
                     window.location.href = "/index.html";
                 }
             } else {
-                // 4. SI LA RUTA ESTÁ VACÍA DE USUARIOS, CARGA TU PROPIO PERFIL
                 cargarDatosPerfil(currentUserId, true);
             }
         });
@@ -231,24 +155,23 @@
                 if (doc.exists) {
                     const data = doc.data();
                     
+                    // REESCRITURA DE URL: Asegura que el enlace diga /@usuario
+                    if(data.username) {
+                        window.history.replaceState(null, '', '/' + data.username);
+                    }
+                    
                     const nombreReal = data.nombre || 'Usuario';
                     document.getElementById('profileName').innerHTML = `${nombreReal} <img src="https://i.postimg.cc/wj51JqWm/verificado.png" class="verified-badge" alt="Verificado">`;
                     
-                    if (data.fotoPerfil) {
-                        document.getElementById('profilePhoto').src = data.fotoPerfil;
-                    } else {
-                        document.getElementById('profilePhoto').src = `https://ui-avatars.com/api/?name=${nombreReal}&background=random`;
-                    }
+                    if (data.fotoPerfil) document.getElementById('profilePhoto').src = data.fotoPerfil;
+                    else document.getElementById('profilePhoto').src = `https://ui-avatars.com/api/?name=${nombreReal}&background=random`;
 
-                    if (data.fotoPortada) {
-                        document.getElementById('coverPhoto').style.backgroundImage = `url('${data.fotoPortada}')`;
-                    }
+                    if (data.fotoPortada) document.getElementById('coverPhoto').style.backgroundImage = `url('${data.fotoPortada}')`;
 
                     if(data.ciudad) document.getElementById('infoCity').innerText = data.ciudad;
                     if(data.telefono) document.getElementById('infoPhone').innerText = data.telefono;
                     if(data.interes) document.getElementById('infoInterest').innerText = data.interes;
 
-                    // SI NO ES MI PERFIL, SE OCULTAN BOTONES DE EDICIÓN Y SE MUESTRA EL BOTÓN DE MENSAJE
                     if (!isMyProfile) {
                         document.getElementById('btnEditCover').style.display = 'none';
                         document.getElementById('btnEditAvatar').style.display = 'none';
@@ -256,7 +179,6 @@
                         const btnMensaje = document.createElement('button');
                         btnMensaje.className = "btn-message-profile";
                         btnMensaje.innerText = "💬 Enviar Mensaje";
-                        // Ruta absoluta para no encadenar URLs
                         btnMensaje.onclick = () => window.location.href = `/chat.html?id=${uidToLoad}`;
                         document.getElementById('messageButtonContainer').appendChild(btnMensaje);
                     }
@@ -278,23 +200,18 @@
             document.getElementById('loadingOverlay').style.display = 'flex';
 
             const formData = new FormData();
-            formData.append('image', file);
-            formData.append('key', IMGBB_API_KEY);
+            formData.append('image', file); formData.append('key', IMGBB_API_KEY);
 
             try {
                 const res = await fetch('https://api.imgbb.com/1/upload', { method: 'POST', body: formData });
                 const data = await res.json();
-                
                 if (data.success) {
                     const imgUrl = data.data.url;
                     const updateData = {};
-                    
                     if (tipo === 'perfil') {
-                        updateData.fotoPerfil = imgUrl;
-                        document.getElementById('profilePhoto').src = imgUrl;
+                        updateData.fotoPerfil = imgUrl; document.getElementById('profilePhoto').src = imgUrl;
                     } else if (tipo === 'portada') {
-                        updateData.fotoPortada = imgUrl;
-                        document.getElementById('coverPhoto').style.backgroundImage = `url('${imgUrl}')`;
+                        updateData.fotoPortada = imgUrl; document.getElementById('coverPhoto').style.backgroundImage = `url('${imgUrl}')`;
                     }
                     await db.collection('usuarios').doc(currentUserId).update(updateData);
                 } else {
@@ -303,8 +220,7 @@
             } catch (error) {
                 console.error(error); alert("Ocurrió un error en la conexión al subir la imagen.");
             } finally {
-                document.getElementById('loadingOverlay').style.display = 'none';
-                event.target.value = ''; 
+                document.getElementById('loadingOverlay').style.display = 'none'; event.target.value = ''; 
             }
         }
     </script>
