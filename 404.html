@@ -105,7 +105,7 @@
         }
         .btn-message-profile:active { transform: scale(0.95); }
 
-        /* PANTALLA DE ERROR VISUAL (Sin redirecciones) */
+        /* PANTALLA DE ERROR VISUAL */
         #errorScreen {
             position: absolute; top: 0; left: 0; width: 100%; height: 100dvh; background: #fff;
             z-index: 2000; display: none; flex-direction: column; justify-content: center;
@@ -119,7 +119,7 @@
 </head>
 <body>
 
-    <!-- Pantalla de Error Visual -->
+    <!-- Pantalla de Error Visual (Se activa si el usuario no existe) -->
     <div id="errorScreen">
         <span style="font-size: 50px; margin-bottom: 15px;">😕</span>
         <h2>Usuario no encontrado</h2>
@@ -189,7 +189,6 @@
         const IMGBB_API_KEY = "88f000b35b55f78d1f16c9d9ea939050";
         let currentUserId = null;
 
-        // Se corrigió el error garrafal: Ahora permite leer perfiles sin estar logueado
         auth.onAuthStateChanged(async (user) => {
             if (user) { currentUserId = user.uid; }
 
@@ -198,7 +197,7 @@
             const parts = cleanPath.split('/');
             let lastPart = parts[parts.length - 1];
 
-            // Si entra a la raíz o a 404
+            // Si entra directo a 404, validamos si tiene sesión
             if (lastPart === '404' || lastPart === '404.html' || lastPart === '') {
                  if(currentUserId) {
                      cargarDatosPerfil(currentUserId, true);
@@ -208,7 +207,7 @@
                  return;
             }
 
-            // Si detectamos un usuario en el enlace (ej. /@juan)
+            // Aquí atrapa cualquier enlace que tenga un usuario (ej. @Juan-Zamora99)
             if (lastPart && lastPart !== '') {
                 let requestedUsername = lastPart.startsWith('@') ? lastPart : '@' + lastPart;
                 requestedUsername = requestedUsername.toLowerCase();
@@ -217,7 +216,7 @@
                     const snapshot = await db.collection('usuarios').where('username', '==', requestedUsername).get();
 
                     if (snapshot.empty) {
-                        // LA MAGIA: Oculta el perfil y muestra el error sin recargar la página
+                        // LA CLAVE: Si inventan un usuario, NO recarga la página, muestra la pantalla de error.
                         document.getElementById('loadingOverlay').style.display = 'none';
                         document.getElementById('mainProfileContainer').style.display = 'none';
                         document.getElementById('errorScreen').style.display = 'flex';
