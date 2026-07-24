@@ -153,7 +153,7 @@
                 </svg>
                 
                 <div class="header-dropdown" id="headerDropdown">
-                    <div class="dropdown-item" onclick="window.location.href='404.html'">👤 Ver Perfil</div>
+                    <div class="dropdown-item" id="btnVerPerfil">👤 Ver Perfil</div>
                     <div class="dropdown-item" onclick="vaciarChatPrivado()">🗑️ Vaciar Chat</div>
                 </div>
             </div>
@@ -197,6 +197,7 @@
         const db = firebase.firestore();
 
         let currentActiveUser = null;
+        let targetUser = null; // AQUI GUARDAMOS LOS DATOS DE LA OTRA PERSONA
         let unsubscribeListener = null;
         let targetUid = null;
         let privateRoomId = null;
@@ -263,31 +264,37 @@
             window.location.href = "bandeja.html";
         }
 
-        auth.onAuthStateChanged((user) => {
+        auth.onAuthStateChanged(async (user) => {
             if (user) {
-                db.collection('usuarios').doc(user.uid).get().then((doc) => {
-                    if (doc.exists) {
-                        currentActiveUser = doc.data();
-                        
-                        // 2. GENERAR ID ÚNICO DE SALA PRIVADA
-                        // Al ordenar los UIDs alfabéticamente, siempre generará el mismo ID sin importar quién inicie el chat
-                        privateRoomId = currentActiveUser.uid < targetUid ? `${currentActiveUser.uid}_${targetUid}` : `${targetUid}_${currentActiveUser.uid}`;
+                // 1. Descargar mis datos
+                const myDoc = await db.collection('usuarios').doc(user.uid).get();
+                if(myDoc.exists) currentActiveUser = myDoc.data();
 
-                        // Simular nombre del otro usuario (Normalmente lo buscarías en la base de datos)
-                        document.getElementById('displayUserName').innerText = "Chat con " + targetUid;
-                        document.getElementById('headerAvatar').src = `https://ui-avatars.com/api/?name=${targetUid}&background=random`;
+                // 2. DESCARGAMOS LOS DATOS REALES DE LA OTRA PERSONA (1 Sola Lectura)
+                const targetDoc = await db.collection('usuarios').doc(targetUid).get();
+                if(targetDoc.exists) {
+                    targetUser = targetDoc.data();
+                    document.getElementById('displayUserName').innerText = targetUser.nombre;
+                    document.getElementById('headerAvatar').src = targetUser.fotoPerfil || `https://ui-avatars.com/api/?name=${targetUser.nombre}&background=random`;
+                    
+                    document.getElementById('btnVerPerfil').onclick = () => {
+                        window.location.href = `/${targetUser.username}`;
+                    };
+                } else {
+                    document.getElementById('displayUserName').innerText = "Usuario no encontrado";
+                }
 
-                        document.getElementById('loadingScreen').style.display = 'none';
-                        conectarWebSocket();
-                        iniciarEscuchaDeMensajes();
-                    }
-                });
+                // Generar la sala privada
+                privateRoomId = currentActiveUser.uid < targetUid ? `${currentActiveUser.uid}_${targetUid}` : `${targetUid}_${currentActiveUser.uid}`;
+
+                document.getElementById('loadingScreen').style.display = 'none';
+                conectarWebSocket();
+                iniciarEscuchaDeMensajes();
             } else {
                 window.location.href = "login.html";
             }
         });
 
-        // 3. VACIAR CHAT PRIVADO
         async function vaciarChatPrivado() {
             cerrarPaneles();
             if(confirm("¿Estás seguro de que deseas vaciar este chat privado?")) {
@@ -336,8 +343,10 @@
             try {
                 const res = await fetch(`https://api.cloudinary.com/v1_1/qnhwxlqz/auto/upload`, { method: 'POST', body: formData });
                 const data = await res.json();
-                if (data.secure_url) guardarMensajeFirebase({ audioUrl: data.secure_url, texto: "🎤 Nota de voz" });
-                else alert("Error Cloudinary: Verifica configuración.");
+                if (data.secure_url) {
+                    guardarMensajeFirebase({ audioUrl: data.secure_url, texto: "🎤 Nota de voz" });
+                    actualizarBandejas("🎤 Nota de voz");
+                }
             } catch (e) { alert("Error de conexión al subir audio."); } 
             finally { input.placeholder = "Escribe un mensaje..."; input.disabled = false; btnSend.disabled = false; }
         }
@@ -352,8 +361,10 @@
             try {
                 const res = await fetch('https://api.imgbb.com/1/upload', { method: 'POST', body: formData });
                 const data = await res.json();
-                if (data.success) guardarMensajeFirebase({ imgUrl: data.data.url, texto: "📷 Imagen" });
-                else alert("No se pudo subir la imagen.");
+                if (data.success) {
+                    guardarMensajeFirebase({ imgUrl: data.data.url, texto: "📷 Imagen" });
+                    actualizarBandejas("📷 Imagen");
+                }
             } catch (e) { alert("Error al subir imagen."); } 
             finally { input.placeholder = "Escribe un mensaje..."; input.disabled = false; btn.disabled = false; event.target.value = ''; }
         }
@@ -368,7 +379,6 @@
 
         function reaccionarMensaje(event, docId, emoji) {
             event.stopPropagation(); 
-            // 4. GUARDAR REACCIÓN EN COLECCIÓN PRIVADA
             db.collection('chats').doc(privateRoomId).collection('mensajes').doc(docId).set({
                 reacciones: { [currentActiveUser.uid]: emoji }
             }, { merge: true });
@@ -377,8 +387,6 @@
 
         function iniciarEscuchaDeMensajes() {
             const chatBody = document.getElementById('chatBody');
-            
-            // 5. ESCUCHAR SOLO LA COLECCIÓN DE LA SALA PRIVADA
             unsubscribeListener = db.collection('chats').doc(privateRoomId).collection('mensajes')
                 .orderBy('timestamp', 'asc').limitToLast(50) 
                 .onSnapshot((snapshot) => {
@@ -450,8 +458,10 @@
             if (container) container.innerHTML = obtenerHtmlReacciones(data.reacciones);
         }
 
+        // ==========================================
+        // GUARDAR MENSAJE Y ACTUALIZAR BANDEJAS (EL HISTORIAL)
+        // ==========================================
         function guardarMensajeFirebase(datosExtra) {
-            // 6. ENVIAR A LA SALA PRIVADA
             db.collection('chats').doc(privateRoomId).collection('mensajes').add({
                 uid: currentActiveUser.uid,
                 ...datosExtra,
@@ -459,11 +469,43 @@
             });
         }
 
+        // Esta función hace que el chat aparezca en la bandeja (Inbox) de los dos usuarios
+        function actualizarBandejas(textoResumen) {
+            const batch = db.batch();
+            
+            // 1. Guardar en mi bandeja (Mis chats)
+            const miInboxRef = db.collection('usuarios').doc(currentActiveUser.uid).collection('inbox').doc(targetUid);
+            batch.set(miInboxRef, {
+                uid: targetUid,
+                nombre: targetUser.nombre || 'Usuario',
+                foto: targetUser.fotoPerfil || `https://ui-avatars.com/api/?name=${targetUser.nombre || 'U'}&background=random`,
+                ultimoMensaje: textoResumen,
+                timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+                leido: true
+            });
+
+            // 2. Guardar en la bandeja de la otra persona
+            const suInboxRef = db.collection('usuarios').doc(targetUid).collection('inbox').doc(currentActiveUser.uid);
+            batch.set(suInboxRef, {
+                uid: currentActiveUser.uid,
+                nombre: currentActiveUser.nombre || 'Usuario',
+                foto: currentActiveUser.fotoPerfil || `https://ui-avatars.com/api/?name=${currentActiveUser.nombre || 'U'}&background=random`,
+                ultimoMensaje: textoResumen,
+                timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+                leido: false
+            });
+
+            batch.commit().catch(e => console.error("Error actualizando historiales:", e));
+        }
+
         function enviarMensaje() {
             const input = document.getElementById('messageInput'); const texto = input.value.trim();
-            if (texto === '' || !currentActiveUser) return;
+            if (texto === '' || !currentActiveUser || !targetUser) return;
+            
             input.value = ''; input.focus(); cerrarPaneles(); 
+            
             guardarMensajeFirebase({ texto: texto });
+            actualizarBandejas(texto);
         }
     </script>
 </body>
