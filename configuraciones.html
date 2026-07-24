@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Configuraciones - Mi Fans</title>
     
-    <!-- SDKs de Firebase (v8) -->
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
@@ -21,40 +20,19 @@
             --of-green: #28a745;
         }
 
-        body, html {
-            margin: 0; padding: 0; height: 100%; width: 100%;
-            background-color: #f4f4f4;
-            font-family: -apple-system, BlinkMacSystemFont, "Roboto", sans-serif;
-            display: flex; justify-content: center;
-        }
-
-        .app-container {
-            width: 100%; max-width: 500px; height: 100dvh;
-            background: var(--of-bg); display: flex; flex-direction: column;
-            box-shadow: 0 0 15px rgba(0,0,0,0.05); position: relative;
-            overflow: hidden;
-        }
-
-        /* PANTALLAS (SCREENS) */
-        .screen {
-            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-            background: var(--of-bg); display: flex; flex-direction: column;
-            transform: translateX(100%); transition: transform 0.3s ease;
-            z-index: 10;
-        }
+        body, html { margin: 0; padding: 0; height: 100%; width: 100%; background-color: #f4f4f4; font-family: -apple-system, BlinkMacSystemFont, "Roboto", sans-serif; display: flex; justify-content: center; }
+        .app-container { width: 100%; max-width: 500px; height: 100dvh; background: var(--of-bg); display: flex; flex-direction: column; box-shadow: 0 0 15px rgba(0,0,0,0.05); position: relative; overflow: hidden; }
+        
+        .screen { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: var(--of-bg); display: flex; flex-direction: column; transform: translateX(100%); transition: transform 0.3s ease; z-index: 10; }
         .screen.active { transform: translateX(0); z-index: 20; }
         .screen.main-screen { transform: translateX(0); z-index: 10; }
 
-        .top-header {
-            background: var(--of-bg); padding: 15px; display: flex; align-items: center; gap: 15px;
-            border-bottom: 1px solid var(--of-border); z-index: 30; flex-shrink: 0;
-        }
+        .top-header { background: var(--of-bg); padding: 15px; display: flex; align-items: center; gap: 15px; border-bottom: 1px solid var(--of-border); z-index: 30; flex-shrink: 0; }
         .back-icon { width: 24px; height: 24px; fill: none; stroke: var(--of-text); stroke-width: 2; cursor: pointer; }
         .header-title { font-size: 18px; font-weight: 800; margin: 0; color: var(--of-text); }
 
         .content-scroll { flex-grow: 1; overflow-y: auto; background: #fdfdfd; padding-bottom: 20px;}
 
-        /* ESTILOS DEL MENÚ PRINCIPAL */
         .profile-summary { padding: 20px 15px; display: flex; align-items: center; gap: 15px; border-bottom: 8px solid #f4f4f4; background: var(--of-bg); cursor: pointer; transition: 0.2s;}
         .profile-summary:active { background: #f0f0f0; }
         .profile-avatar { width: 60px; height: 60px; border-radius: 50%; object-fit: cover; border: 2px solid var(--of-border); }
@@ -73,7 +51,6 @@
         .chevron-icon { width: 18px; height: 18px; fill: none; stroke: var(--of-gray); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
         .logout-text { color: var(--of-danger); font-weight: 600; } .logout-icon { stroke: var(--of-danger); }
 
-        /* ESTILOS DE FORMULARIOS INTERNOS */
         .form-container { padding: 20px 15px; }
         .input-group { margin-bottom: 15px; display: flex; flex-direction: column; gap: 5px; }
         .input-group label { font-size: 13px; font-weight: 600; color: var(--of-gray); }
@@ -88,17 +65,12 @@
         .btn-success { background: var(--of-green); color: white; border: none; padding: 14px; border-radius: 25px; font-size: 16px; font-weight: bold; cursor: pointer; width: 100%; margin-top: 10px; }
         .btn-success:active { opacity: 0.8; }
 
-        /* INFO WALLET */
         .bank-card { background: #f4f9ff; border: 1px solid #cce4ff; border-radius: 10px; padding: 15px; margin-bottom: 20px; }
         .bank-card p { margin: 5px 0; font-size: 14px; color: #333; }
         .bank-card strong { color: var(--of-blue); }
         .earnings-card { background: #f4fff8; border: 1px solid #ccffdd; border-radius: 10px; padding: 15px; margin-bottom: 20px; text-align: center; }
 
-        #loadingScreen {
-            position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: var(--of-bg);
-            display: flex; justify-content: center; align-items: center; z-index: 1000;
-            color: var(--of-blue); font-weight: bold; font-size: 18px; flex-direction: column; gap: 10px;
-        }
+        #loadingScreen { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: var(--of-bg); display: flex; justify-content: center; align-items: center; z-index: 1000; color: var(--of-blue); font-weight: bold; font-size: 18px; flex-direction: column; gap: 10px; }
     </style>
 </head>
 <body>
@@ -110,7 +82,6 @@
             <span id="loadingText">Sincronizando datos...</span>
         </div>
 
-        <!-- ================= PANTALLA PRINCIPAL ================= -->
         <div id="screen-main" class="screen main-screen active">
             <header class="top-header">
                 <svg class="back-icon" viewBox="0 0 24 24" onclick="window.location.href='index.html'"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
@@ -168,7 +139,6 @@
             </main>
         </div>
 
-        <!-- ================= PANTALLA: CUENTA ================= -->
         <div id="screen-cuenta" class="screen">
             <header class="top-header">
                 <svg class="back-icon" viewBox="0 0 24 24" onclick="closeScreen('screen-cuenta')"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
@@ -176,27 +146,16 @@
             </header>
             <div class="content-scroll form-container">
                 
-                <!-- PRECIO DE SUSCRIPCIÓN -->
                 <div class="input-group" style="background:#f4f9ff; padding:15px; border-radius:10px; border:1px solid #cce4ff;">
                     <label style="color:var(--of-blue); font-size:14px;">Precio de Suscripción VIP ($ MXN)</label>
                     <input type="number" id="inpPrecioSub" placeholder="Ej. 100">
                     <span style="font-size: 12px; color: #555; margin-top: 4px; line-height:1.4;">Pon 0 para que tu perfil sea únicamente Gratis. Si pones un costo, habilitarás el botón <b>VIP Exclusivo</b> para que los fans te paguen esa cantidad mensual (Mínimo $50 MXN).</span>
                 </div>
 
-                <div class="input-group">
-                    <label>Nombre a mostrar</label>
-                    <input type="text" id="inpNombre" placeholder="Tu nombre público">
-                </div>
-                <div class="input-group">
-                    <label>Nombre de usuario (@)</label>
-                    <input type="text" id="inpUsername" placeholder="ej. usuario_123">
-                </div>
-                <div class="input-group">
-                    <label>Biografía (Descripción)</label>
-                    <input type="text" id="inpBio" placeholder="Motívame, apóyame...">
-                </div>
+                <div class="input-group"><label>Nombre a mostrar</label><input type="text" id="inpNombre" placeholder="Tu nombre público"></div>
+                <div class="input-group"><label>Nombre de usuario (@)</label><input type="text" id="inpUsername" placeholder="ej. usuario_123"></div>
+                <div class="input-group"><label>Biografía (Descripción)</label><input type="text" id="inpBio" placeholder="Motívame, apóyame..."></div>
 
-                <!-- SUBIDA DE IMÁGENES CON IMGBB -->
                 <div class="input-group" style="margin-top:10px;">
                     <label>Foto de Perfil</label>
                     <input type="file" id="inpFilePerfil" accept="image/*" style="display:none;" onchange="subirImagenConfig(event, 'perfil')">
@@ -213,78 +172,47 @@
                     <input type="hidden" id="inpUrlPortada">
                 </div>
 
-                <!-- DETALLES ADICIONALES -->
                 <h3 style="margin-top:20px; font-size:16px;">Detalles Adicionales</h3>
-                <div class="input-group">
-                    <label>Trabaja en</label>
-                    <input type="text" id="inpTrabajo" placeholder="Ej. Creador de Contenido">
-                </div>
-                <div class="input-group">
-                    <label>Vive en (Ciudad)</label>
-                    <input type="text" id="inpCiudad" placeholder="Ej. Ciudad de México">
-                </div>
-                <div class="input-group">
-                    <label>Edad</label>
-                    <input type="text" id="inpEdad" placeholder="Ej. 25 años">
-                </div>
-                <div class="input-group">
-                    <label>Teléfono (Privado / Opcional)</label>
-                    <input type="tel" id="inpTelefono" placeholder="Ej. 5512345678">
-                </div>
-                <div class="input-group">
-                    <label>Interesado en</label>
-                    <input type="text" id="inpInteres" placeholder="Ej. Mujeres, Hombres, Ambos">
-                </div>
+                <div class="input-group"><label>Trabaja en</label><input type="text" id="inpTrabajo" placeholder="Ej. Creador de Contenido"></div>
+                <div class="input-group"><label>Vive en (Ciudad)</label><input type="text" id="inpCiudad" placeholder="Ej. Ciudad de México"></div>
+                <div class="input-group"><label>Edad</label><input type="text" id="inpEdad" placeholder="Ej. 25 años"></div>
+                <div class="input-group"><label>Teléfono (Privado / Opcional)</label><input type="tel" id="inpTelefono" placeholder="Ej. 5512345678"></div>
+                <div class="input-group"><label>Interesado en</label><input type="text" id="inpInteres" placeholder="Ej. Mujeres, Hombres, Ambos"></div>
 
                 <button class="btn-primary" onclick="guardarCuenta()">Guardar Todos los Cambios</button>
             </div>
         </div>
 
-        <!-- ================= PANTALLA: SEGURIDAD ================= -->
         <div id="screen-seguridad" class="screen">
             <header class="top-header">
                 <svg class="back-icon" viewBox="0 0 24 24" onclick="closeScreen('screen-seguridad')"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
                 <h1 class="header-title">Seguridad</h1>
             </header>
             <div class="content-scroll form-container">
-                <div class="input-group">
-                    <label>Correo Electrónico</label>
-                    <input type="email" id="inpEmail" disabled>
-                </div>
-                <div class="input-group" style="margin-top: 20px;">
-                    <label>Nueva Contraseña</label>
-                    <input type="password" id="inpPass1" placeholder="Mínimo 6 caracteres">
-                </div>
-                <div class="input-group">
-                    <label>Confirmar Nueva Contraseña</label>
-                    <input type="password" id="inpPass2" placeholder="Repite la contraseña">
-                </div>
+                <div class="input-group"><label>Correo Electrónico</label><input type="email" id="inpEmail" disabled></div>
+                <div class="input-group" style="margin-top: 20px;"><label>Nueva Contraseña</label><input type="password" id="inpPass1" placeholder="Mínimo 6 caracteres"></div>
+                <div class="input-group"><label>Confirmar Nueva Contraseña</label><input type="password" id="inpPass2" placeholder="Repite la contraseña"></div>
                 <button class="btn-primary" onclick="cambiarPassword()">Actualizar Contraseña</button>
             </div>
         </div>
 
-        <!-- ================= PANTALLA: WALLET ================= -->
         <div id="screen-wallet" class="screen">
             <header class="top-header">
                 <svg class="back-icon" viewBox="0 0 24 24" onclick="closeScreen('screen-wallet')"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
                 <h1 class="header-title">Mi Wallet</h1>
             </header>
             <div class="content-scroll form-container">
-                
                 <div class="earnings-card">
                     <p style="color: var(--of-gray); margin-bottom: 5px; font-weight:bold;">💰 TUS GANANCIAS (Retirables)</p>
                     <h1 id="earningsBalanceBig" style="color: var(--of-green); margin: 0; font-size: 40px;">$0.00</h1>
                     <p style="font-size:12px; color:#666; margin-top:5px;">Mínimo de retiro: $500.00 MXN</p>
                     <button class="btn-success" onclick="solicitarRetiro()">Solicitar Retiro a mi Cuenta</button>
                 </div>
-
                 <hr style="border:none; border-top:1px solid var(--of-border); margin: 30px 0;">
-
                 <div style="text-align: center; margin-bottom: 20px;">
                     <p style="color: var(--of-gray); margin-bottom: 5px; font-weight:bold;">💳 SALDO PARA GASTAR (Propinas / Suscripciones)</p>
                     <h1 id="walletBalanceBig" style="color: var(--of-blue); margin: 0; font-size: 30px;">$0.00</h1>
                 </div>
-                
                 <h3 style="margin-bottom: 10px;">Recargar Saldo</h3>
                 <p style="font-size: 14px; color: #666;">Para recargar, realiza una transferencia con los siguientes datos:</p>
                 <div class="bank-card">
@@ -293,16 +221,11 @@
                     <p>Beneficiario: <strong>Mi Fans Pagos</strong></p>
                     <p>Concepto: <strong id="conceptoPago">Recarga...</strong></p>
                 </div>
-
-                <div class="input-group">
-                    <label>Monto depositado ($)</label>
-                    <input type="number" id="inpMontoRecarga" placeholder="Ej. 500">
-                </div>
+                <div class="input-group"><label>Monto depositado ($)</label><input type="number" id="inpMontoRecarga" placeholder="Ej. 500"></div>
                 <button class="btn-primary" onclick="validarSaldo()">Notificar Recarga Realizada</button>
             </div>
         </div>
 
-        <!-- ================= PANTALLA: MÉTODOS DE PAGO ================= -->
         <div id="screen-metodo-pago" class="screen">
             <header class="top-header">
                 <svg class="back-icon" viewBox="0 0 24 24" onclick="closeScreen('screen-metodo-pago')"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
@@ -310,19 +233,9 @@
             </header>
             <div class="content-scroll form-container">
                 <p style="font-size: 14px; color: #666; margin-bottom: 20px;">Agrega tu cuenta bancaria para recibir los retiros de tus ganancias. Debe estar a tu nombre.</p>
-                
-                <div class="input-group">
-                    <label>Banco</label>
-                    <input type="text" id="inpCobroBanco" placeholder="Ej. BBVA, Banamex, Nu">
-                </div>
-                <div class="input-group">
-                    <label>Nombre del Titular</label>
-                    <input type="text" id="inpCobroTitular" placeholder="Tu nombre completo">
-                </div>
-                <div class="input-group">
-                    <label>Cuenta CLABE (18 dígitos)</label>
-                    <input type="number" id="inpCobroClabe" placeholder="000000000000000000">
-                </div>
+                <div class="input-group"><label>Banco</label><input type="text" id="inpCobroBanco" placeholder="Ej. BBVA, Banamex, Nu"></div>
+                <div class="input-group"><label>Nombre del Titular</label><input type="text" id="inpCobroTitular" placeholder="Tu nombre completo"></div>
+                <div class="input-group"><label>Cuenta CLABE (18 dígitos)</label><input type="number" id="inpCobroClabe" placeholder="000000000000000000"></div>
                 <button class="btn-primary" onclick="guardarMetodoCobro()">Guardar Datos Bancarios</button>
             </div>
         </div>
@@ -459,10 +372,16 @@
             }
 
             const btn = event.target; btn.innerText = "Guardando..."; btn.disabled = true;
+            
+            let userNameCorregido = document.getElementById('inpUsername').value.trim();
+            if(!userNameCorregido.startsWith('@')) {
+                userNameCorregido = '@' + userNameCorregido;
+            }
+
             const nuevosDatos = {
                 precioSuscripcion: precioSub,
                 nombre: document.getElementById('inpNombre').value,
-                username: document.getElementById('inpUsername').value,
+                username: userNameCorregido,
                 bio: document.getElementById('inpBio').value,
                 fotoPerfil: document.getElementById('inpUrlPerfil').value,
                 fotoPortada: document.getElementById('inpUrlPortada').value,
@@ -473,7 +392,26 @@
                 interes: document.getElementById('inpInteres').value
             };
             
-            db.collection('usuarios').doc(currentUserAuth.uid).update(nuevosDatos).then(() => {
+            // BATCH UPDATE: Actualizar el usuario y todas sus publicaciones de una vez
+            db.collection('usuarios').doc(currentUserAuth.uid).update(nuevosDatos).then(async () => {
+                
+                try {
+                    const batch = db.batch();
+                    const postsSnap = await db.collection('publicaciones').where('uid', '==', currentUserAuth.uid).get();
+                    
+                    postsSnap.forEach(doc => {
+                        batch.update(doc.ref, {
+                            autor: nuevosDatos.nombre,
+                            usuario: nuevosDatos.username,
+                            fotoAutor: nuevosDatos.fotoPerfil
+                        });
+                    });
+                    
+                    await batch.commit();
+                } catch(err) {
+                    console.log("No se pudieron actualizar los posts: ", err);
+                }
+
                 alert("¡Perfil actualizado con éxito!");
                 closeScreen('screen-cuenta');
             }).catch(e => alert("Error: " + e.message)).finally(() => { btn.innerText = "Guardar Todos los Cambios"; btn.disabled = false; });
