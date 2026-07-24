@@ -105,7 +105,7 @@
         }
         .btn-message-profile:active { transform: scale(0.95); }
 
-        /* NUEVO: PANTALLA DE ERROR 404 INTERNA */
+        /* PANTALLA DE ERROR VISUAL (Sin redirecciones) */
         #errorScreen {
             position: absolute; top: 0; left: 0; width: 100%; height: 100dvh; background: #fff;
             z-index: 2000; display: none; flex-direction: column; justify-content: center;
@@ -119,7 +119,7 @@
 </head>
 <body>
 
-    <!-- PANTALLA DE ERROR (Se muestra si el usuario no existe) -->
+    <!-- Pantalla de Error Visual -->
     <div id="errorScreen">
         <span style="font-size: 50px; margin-bottom: 15px;">😕</span>
         <h2>Usuario no encontrado</h2>
@@ -131,7 +131,7 @@
         
         <div id="loadingOverlay">
             <span style="font-size: 35px; margin-bottom: 12px;">⏳</span>
-            <span id="loadingText" style="font-size: 16px;">Buscando perfil...</span>
+            <span id="loadingText" style="font-size: 16px;">Buscando usuario...</span>
         </div>
 
         <div class="top-nav">
@@ -189,6 +189,7 @@
         const IMGBB_API_KEY = "88f000b35b55f78d1f16c9d9ea939050";
         let currentUserId = null;
 
+        // Se corrigió el error garrafal: Ahora permite leer perfiles sin estar logueado
         auth.onAuthStateChanged(async (user) => {
             if (user) { currentUserId = user.uid; }
 
@@ -197,7 +198,7 @@
             const parts = cleanPath.split('/');
             let lastPart = parts[parts.length - 1];
 
-            // Si entra a la raíz o directamente a 404
+            // Si entra a la raíz o a 404
             if (lastPart === '404' || lastPart === '404.html' || lastPart === '') {
                  if(currentUserId) {
                      cargarDatosPerfil(currentUserId, true);
@@ -207,6 +208,7 @@
                  return;
             }
 
+            // Si detectamos un usuario en el enlace (ej. /@juan)
             if (lastPart && lastPart !== '') {
                 let requestedUsername = lastPart.startsWith('@') ? lastPart : '@' + lastPart;
                 requestedUsername = requestedUsername.toLowerCase();
@@ -215,7 +217,7 @@
                     const snapshot = await db.collection('usuarios').where('username', '==', requestedUsername).get();
 
                     if (snapshot.empty) {
-                        // LA MAGIA AQUÍ: Ya no redirige, solo muestra la pantalla de error visualmente.
+                        // LA MAGIA: Oculta el perfil y muestra el error sin recargar la página
                         document.getElementById('loadingOverlay').style.display = 'none';
                         document.getElementById('mainProfileContainer').style.display = 'none';
                         document.getElementById('errorScreen').style.display = 'flex';
