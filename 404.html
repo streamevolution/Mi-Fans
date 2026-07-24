@@ -117,8 +117,8 @@
         </div>
 
         <div class="top-nav">
-            <!-- Ruta absoluta forzada para evitar errores al retroceder -->
-            <button class="btn-back" onclick="window.location.href='/index.html'">
+            <!-- Regresa a index.html usando ruta relativa para evitar problemas en 404 -->
+            <button class="btn-back" onclick="window.location.href='index.html'">
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
             </button>
         </div>
@@ -173,11 +173,10 @@
         let currentUserId = null;
 
         auth.onAuthStateChanged(async (user) => {
-            if (!user) {
-                window.location.href = "/login.html";
-                return;
+            // Guardamos el usuario si está logueado, pero permitimos ver perfiles públicos
+            if (user) {
+                currentUserId = user.uid;
             }
-            currentUserId = user.uid;
 
             // 1. LEER LA URL INTELIGENTEMENTE
             const path = decodeURIComponent(window.location.pathname);
@@ -185,39 +184,42 @@
             const parts = cleanPath.split('/');
             let lastPart = parts[parts.length - 1];
 
-            // Si entra directo a 404, lo limpiamos para cargar su propio perfil
-            if (lastPart === '404' || lastPart === '404.html') {
-                lastPart = '';
+            // Si entra directo a 404.html o la raíz, verificamos si está logueado
+            if (lastPart === '404' || lastPart === '404.html' || lastPart === '') {
+                 if(currentUserId) {
+                     cargarDatosPerfil(currentUserId, true);
+                 } else {
+                     window.location.href = "login.html";
+                 }
+                 return;
             }
 
+            // Si hay algo en la URL (ej. @Juan-Zamora99)
             if (lastPart && lastPart !== '') {
-                // Forzamos el arroba para buscar en la base de datos
+                // Forzamos el arroba y convertimos a minúsculas
                 let requestedUsername = lastPart.startsWith('@') ? lastPart : '@' + lastPart;
                 requestedUsername = requestedUsername.toLowerCase();
 
                 try {
                     const snapshot = await db.collection('usuarios').where('username', '==', requestedUsername).get();
 
-                    // SI INVENTAN UN USUARIO O NO EXISTE
+                    // SI NO EXISTE
                     if (snapshot.empty) {
                         alert(`El usuario ${requestedUsername} no existe. Verifica el enlace.`);
-                        window.location.href = "/index.html"; 
+                        window.location.href = "index.html"; 
                         return;
                     }
 
                     // CARGAR EL PERFIL DE LA PERSONA DEL ENLACE
                     const userDoc = snapshot.docs[0];
-                    const isMyProfile = (userDoc.id === currentUserId);
+                    const isMyProfile = (currentUserId === userDoc.id);
                     cargarDatosPerfil(userDoc.id, isMyProfile);
 
                 } catch (error) {
                     console.error("Error buscando perfil:", error);
                     alert("Error de conexión al buscar el perfil.");
-                    window.location.href = "/index.html";
+                    window.location.href = "index.html";
                 }
-            } else {
-                // SI LA RUTA ESTÁ LIMPIA (EJ. mifans.com/404), CARGAMOS NUESTRO PERFIL
-                cargarDatosPerfil(currentUserId, true);
             }
         });
 
@@ -244,16 +246,25 @@
                     if(data.telefono) document.getElementById('infoPhone').innerText = data.telefono;
                     if(data.interes) document.getElementById('infoInterest').innerText = data.interes;
 
-                    // SI ESTAMOS VISITANDO A ALGUIEN MÁS
+                    // SI ESTAMOS VISITANDO A ALGUIEN MÁS (O SI NO ESTAMOS LOGUEADOS)
                     if (!isMyProfile) {
                         document.getElementById('btnEditCover').style.display = 'none';
                         document.getElementById('btnEditAvatar').style.display = 'none';
 
-                        const btnMensaje = document.createElement('button');
-                        btnMensaje.className = "btn-message-profile";
-                        btnMensaje.innerText = "💬 Enviar Mensaje";
-                        btnMensaje.onclick = () => window.location.href = `/chat.html?id=${uidToLoad}`;
-                        document.getElementById('messageButtonContainer').appendChild(btnMensaje);
+                        // Solo mostramos el botón de mensaje si estamos logueados
+                        if(currentUserId) {
+                             const btnMensaje = document.createElement('button');
+                             btnMensaje.className = "btn-message-profile";
+                             btnMensaje.innerText = "💬 Enviar Mensaje";
+                             btnMensaje.onclick = () => window.location.href = `chat.html?id=${uidToLoad}`;
+                             document.getElementById('messageButtonContainer').appendChild(btnMensaje);
+                        } else {
+                             const btnLogin = document.createElement('button');
+                             btnLogin.className = "btn-message-profile";
+                             btnLogin.innerText = "🔒 Inicia sesión para mensajear";
+                             btnLogin.onclick = () => window.location.href = `login.html`;
+                             document.getElementById('messageButtonContainer').appendChild(btnLogin);
+                        }
                     }
 
                     document.getElementById('loadingOverlay').style.display = 'none';
@@ -261,7 +272,7 @@
             }).catch(e => {
                 console.error("Error al cargar perfil:", e);
                 alert("No se pudo cargar la información del perfil.");
-                window.location.href = "/index.html";
+                window.location.href = "index.html";
             });
         }
 
