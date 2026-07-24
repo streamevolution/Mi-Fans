@@ -13,119 +13,22 @@
     <style>
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-            margin: 0;
-            padding: 0;
-            background: linear-gradient(135deg, #075e54, #128c7e);
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            min-height: 100dvh;
+            margin: 0; padding: 0; background: linear-gradient(135deg, #075e54, #128c7e);
+            display: flex; justify-content: center; align-items: center; min-height: 100dvh;
         }
-
-        .auth-container {
-            width: 100%;
-            max-width: 400px;
-            padding: 20px;
-            box-sizing: border-box;
-        }
-
-        .auth-box {
-            background: white;
-            padding: 30px 25px;
-            border-radius: 20px;
-            text-align: center;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.25);
-            width: 100%;
-            box-sizing: border-box;
-        }
-
-        .branding h1 {
-            margin: 0;
-            color: #075e54;
-            font-size: 28px;
-            font-weight: 900;
-            letter-spacing: -1px;
-        }
-
-        .branding p {
-            font-size: 14px;
-            color: #666;
-            margin-top: 5px;
-            margin-bottom: 25px;
-        }
-
-        .input-group {
-            margin-bottom: 15px;
-            text-align: left;
-        }
-
-        .input-group label {
-            display: block;
-            font-size: 12px;
-            font-weight: bold;
-            margin-bottom: 5px;
-            color: #555;
-        }
-
-        .input-group input, .input-group select {
-            width: 100%;
-            padding: 12px;
-            border: 1px solid #ddd;
-            border-radius: 10px;
-            font-size: 14px;
-            box-sizing: border-box;
-            outline: none;
-            background: #fafafa;
-            transition: 0.2s;
-        }
-
-        .input-group input:focus, .input-group select:focus {
-            border-color: #128c7e;
-            background: #fff;
-            box-shadow: 0 0 0 3px rgba(18, 140, 126, 0.1);
-        }
-
-        .btn-primary {
-            background: #25d366;
-            color: white;
-            border: none;
-            padding: 14px;
-            width: 100%;
-            border-radius: 10px;
-            font-size: 16px;
-            font-weight: bold;
-            cursor: pointer;
-            margin-top: 10px;
-            transition: 0.2s;
-        }
+        .auth-container { width: 100%; max-width: 400px; padding: 20px; box-sizing: border-box; }
+        .auth-box { background: white; padding: 30px 25px; border-radius: 20px; text-align: center; box-shadow: 0 10px 30px rgba(0,0,0,0.25); width: 100%; box-sizing: border-box; }
+        .branding h1 { margin: 0; color: #075e54; font-size: 28px; font-weight: 900; letter-spacing: -1px; }
+        .branding p { font-size: 14px; color: #666; margin-top: 5px; margin-bottom: 25px; }
+        .input-group { margin-bottom: 15px; text-align: left; }
+        .input-group label { display: block; font-size: 12px; font-weight: bold; margin-bottom: 5px; color: #555; }
+        .input-group input, .input-group select { width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 10px; font-size: 14px; box-sizing: border-box; outline: none; background: #fafafa; transition: 0.2s; }
+        .input-group input:focus, .input-group select:focus { border-color: #128c7e; background: #fff; box-shadow: 0 0 0 3px rgba(18, 140, 126, 0.1); }
+        .btn-primary { background: #25d366; color: white; border: none; padding: 14px; width: 100%; border-radius: 10px; font-size: 16px; font-weight: bold; cursor: pointer; margin-top: 10px; transition: 0.2s; }
         .btn-primary:active { transform: scale(0.97); }
-
-        .btn-secondary {
-            background: transparent;
-            color: #075e54;
-            border: 2px solid #075e54;
-            padding: 12px;
-            width: 100%;
-            border-radius: 10px;
-            font-size: 14px;
-            font-weight: bold;
-            cursor: pointer;
-            margin-top: 12px;
-            transition: 0.2s;
-            box-sizing: border-box;
-        }
+        .btn-secondary { background: transparent; color: #075e54; border: 2px solid #075e54; padding: 12px; width: 100%; border-radius: 10px; font-size: 14px; font-weight: bold; cursor: pointer; margin-top: 12px; transition: 0.2s; box-sizing: border-box; }
         .btn-secondary:active { transform: scale(0.97); background: #f0fdf4; }
-
-        .forgot-password {
-            margin-top: 20px;
-            font-size: 13px;
-            color: #075e54;
-            cursor: pointer;
-            font-weight: bold;
-            display: inline-block;
-            text-decoration: underline;
-        }
-
+        .forgot-password { margin-top: 20px; font-size: 13px; color: #075e54; cursor: pointer; font-weight: bold; display: inline-block; text-decoration: underline; }
         .hidden { display: none !important; }
     </style>
 </head>
@@ -167,7 +70,6 @@
                     <label>Nombre Completo</label>
                     <input type="text" id="regName" placeholder="Ej. Pedro Rodríguez">
                 </div>
-                <!-- NUEVO CAMPO DE USUARIO -->
                 <div class="input-group">
                     <label>Nombre de Usuario (Único)</label>
                     <input type="text" id="regUsername" placeholder="Ej. pedrito_99">
@@ -218,7 +120,6 @@
     </div>
 
     <script>
-        // CONFIGURACIÓN DE FIREBASE (MI FANS)
         const firebaseConfig = {
             apiKey: "AIzaSyBTp1VWtvkbSueprfAPhJ0EpxSmKfEwtzc",
             authDomain: "mi-fans-2d49e.firebaseapp.com",
@@ -228,18 +129,21 @@
             appId: "1:217541513154:web:df760909e97bd3abb8905b"
         };
 
-        if (!firebase.apps.length) {
-            firebase.initializeApp(firebaseConfig);
-        }
+        if (!firebase.apps.length) { firebase.initializeApp(firebaseConfig); }
         const auth = firebase.auth();
         const db = firebase.firestore();
 
-        // Detectar si ya está logueado para redirigirlo inmediatamente
-        auth.onAuthStateChanged((user) => {
-            if (user) {
-                window.location.href = "index.html";
-            }
-        });
+        // Bandera para evitar que Firebase redirija antes de tiempo
+        let procesandoAuth = false;
+
+        // Solo verificar al cargar la página si ya había sesión guardada
+        window.onload = () => {
+            auth.onAuthStateChanged((user) => {
+                if (user && !procesandoAuth) {
+                    window.location.href = "index.html";
+                }
+            });
+        };
 
         function mostrarRegistro() {
             document.getElementById('loginScreen').classList.add('hidden');
@@ -255,19 +159,19 @@
             const email = document.getElementById('loginEmail').value.trim();
             const password = document.getElementById('loginPassword').value;
 
-            if (!email || !password) {
-                alert("Ingresa correo y contraseña.");
-                return;
-            }
+            if (!email || !password) return alert("Ingresa correo y contraseña.");
 
             const btn = document.getElementById('btnLogin');
-            btn.innerText = "Ingresando...";
-            btn.disabled = true;
+            btn.innerText = "Ingresando..."; btn.disabled = true;
+            procesandoAuth = true; // Bloqueamos el redireccionamiento automático
 
             auth.signInWithEmailAndPassword(email, password)
+                .then(() => {
+                    // Redirigimos manualmente solo cuando el login fue exitoso
+                    window.location.href = "index.html";
+                })
                 .catch((error) => {
-                    btn.innerText = "Iniciar Sesión";
-                    btn.disabled = false;
+                    btn.innerText = "Iniciar Sesión"; btn.disabled = false; procesandoAuth = false;
                     alert("Error al iniciar sesión: Verifica tus credenciales.");
                 });
         }
@@ -288,19 +192,17 @@
                 return;
             }
 
-            // Limpieza del nombre de usuario: minúsculas, sin espacios y asegurando el @
             username = username.toLowerCase().replace(/\s+/g, '');
-            if (!username.startsWith('@')) {
-                username = '@' + username;
-            }
+            if (!username.startsWith('@')) username = '@' + username;
 
             const btn = document.getElementById('btnRegister');
-            btn.innerText = "Registrando...";
-            btn.disabled = true;
+            btn.innerText = "Registrando..."; btn.disabled = true;
+            procesandoAuth = true; // Bloqueamos el redireccionamiento automático para que no interrumpa el guardado en la Base de Datos
 
             auth.createUserWithEmailAndPassword(email, password)
                 .then((userCredential) => {
                     const user = userCredential.user;
+                    // Aseguramos que se guarde el documento primero
                     return db.collection('usuarios').doc(user.uid).set({
                         uid: user.uid,
                         nombre: nombre,
@@ -315,25 +217,21 @@
                     });
                 })
                 .then(() => {
-                    // El listener onAuthStateChanged redirigirá automáticamente a index.html
+                    // AHORA SÍ, cuando terminó de guardar, redirigimos
+                    window.location.href = "index.html";
                 })
                 .catch((error) => {
-                    btn.innerText = "Registrarse";
-                    btn.disabled = false;
+                    btn.innerText = "Registrarse"; btn.disabled = false; procesandoAuth = false;
                     alert("Error al registrarse: " + error.message);
                 });
         }
 
         function recuperarContrasena() {
-            const email = prompt("Ingresa tu correo electrónico para enviarte un enlace de restablecimiento:");
+            const email = prompt("Ingresa tu correo electrónico:");
             if (email && email.trim() !== "") {
-                auth.sendPasswordResetEmail(email.trim())
-                    .then(() => {
-                        alert("¡Listo! Se ha enviado un enlace a tu correo para restablecer la contraseña. (Revisa tu carpeta de Spam)");
-                    })
-                    .catch((error) => {
-                        alert("Error: No se pudo enviar el correo. Verifica que la dirección sea correcta.");
-                    });
+                auth.sendPasswordResetEmail(email.trim()).then(() => {
+                    alert("Se ha enviado un enlace a tu correo. (Revisa Spam)");
+                }).catch(() => alert("Error: Verifica que el correo sea correcto."));
             }
         }
     </script>
