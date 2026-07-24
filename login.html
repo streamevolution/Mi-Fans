@@ -136,7 +136,6 @@
         let procesandoAuth = false;
 
         window.onload = () => {
-            // LEER URL PARA ABRIR REGISTRO DIRECTAMENTE
             const urlParams = new URLSearchParams(window.location.search);
             if (urlParams.get('view') === 'register') {
                 mostrarRegistro();
@@ -179,7 +178,7 @@
                 });
         }
 
-        function crearCuenta() {
+        async function crearCuenta() {
             const nombre = document.getElementById('regName').value.trim();
             let username = document.getElementById('regUsername').value.trim();
             const email = document.getElementById('regEmail').value.trim();
@@ -202,29 +201,41 @@
             btn.innerText = "Registrando..."; btn.disabled = true;
             procesandoAuth = true; 
 
-            auth.createUserWithEmailAndPassword(email, password)
-                .then((userCredential) => {
-                    const user = userCredential.user;
-                    return db.collection('usuarios').doc(user.uid).set({
-                        uid: user.uid,
-                        nombre: nombre,
-                        username: username,
-                        correo: email,
-                        ciudad: ciudad,
-                        telefono: telefono,
-                        sexo: sexo,
-                        interes: interes,
-                        atraccion: atraccion,
-                        fechaRegistro: firebase.firestore.FieldValue.serverTimestamp()
-                    });
-                })
-                .then(() => {
-                    window.location.href = "index.html";
-                })
-                .catch((error) => {
+            try {
+                // VALIDAR NOMBRE DE USUARIO ÚNICO
+                const snapUser = await db.collection('usuarios').where('username', '==', username).limit(1).get();
+                if (!snapUser.empty) {
+                    alert("Este nombre de usuario ya está en uso. Por favor elige otro.");
                     btn.innerText = "Registrarse"; btn.disabled = false; procesandoAuth = false;
-                    alert("Error al registrarse: " + error.message);
+                    return;
+                }
+
+                // Generar avatar por defecto para evitar fotos rotas desde el primer día
+                const fotoInicial = `https://ui-avatars.com/api/?name=${encodeURIComponent(nombre)}&background=random`;
+
+                const userCredential = await auth.createUserWithEmailAndPassword(email, password);
+                const user = userCredential.user;
+                
+                await db.collection('usuarios').doc(user.uid).set({
+                    uid: user.uid,
+                    nombre: nombre,
+                    username: username,
+                    correo: email,
+                    ciudad: ciudad,
+                    telefono: telefono,
+                    sexo: sexo,
+                    interes: interes,
+                    atraccion: atraccion,
+                    fotoPerfil: fotoInicial,
+                    fechaRegistro: firebase.firestore.FieldValue.serverTimestamp()
                 });
+                
+                window.location.href = "index.html";
+
+            } catch (error) {
+                btn.innerText = "Registrarse"; btn.disabled = false; procesandoAuth = false;
+                alert("Error al registrarse: " + error.message);
+            }
         }
 
         function recuperarContrasena() {
