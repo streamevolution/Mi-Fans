@@ -291,12 +291,12 @@
                 currentUserAuth = user;
                 document.getElementById('inpEmail').value = user.email; 
                 
-                db.collection('usuarios').doc(user.uid).get().then((doc) => {
+                // VIGILAMOS EL SALDO EN TIEMPO REAL CON onSnapshot
+                db.collection('usuarios').doc(user.uid).onSnapshot((doc) => {
                     if (doc.exists) {
                         currentUserData = doc.data();
                         actualizarInterfazGlobal();
                         
-                        // Acción de redirección dinámica al hacer click
                         document.getElementById('btnPerfilRedireccion').onclick = () => {
                             if(currentUserData.username) {
                                 window.location.href = '/' + currentUserData.username;
@@ -304,8 +304,8 @@
                         };
                     }
                     document.getElementById('loadingScreen').style.display = 'none';
-                }).catch((error) => {
-                    alert("Error cargando perfil: " + error);
+                }, (error) => {
+                    alert("Error cargando perfil: " + error.message);
                 });
             } else {
                 window.location.href = "login.html";
@@ -351,8 +351,6 @@
             };
             db.collection('usuarios').doc(currentUserAuth.uid).update(nuevosDatos).then(() => {
                 alert("¡Perfil actualizado con éxito!");
-                Object.assign(currentUserData, nuevosDatos);
-                actualizarInterfazGlobal();
                 closeScreen('screen-cuenta');
             }).catch(e => alert("Error: " + e.message))
               .finally(() => { btn.innerText = "Guardar Cambios"; btn.disabled = false; });
@@ -406,7 +404,6 @@
             const datosBancarios = { banco, titular, clabe };
             db.collection('usuarios').doc(currentUserAuth.uid).update({ datosBancarios }).then(() => {
                 alert("¡Datos bancarios guardados! Aquí recibirás tus ganancias.");
-                currentUserData.datosBancarios = datosBancarios;
                 closeScreen('screen-metodo-pago');
             }).catch(e => alert("Error: " + e.message))
               .finally(() => { btn.innerText = "Guardar Datos Bancarios"; btn.disabled = false; });
