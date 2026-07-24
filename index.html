@@ -17,6 +17,7 @@
             --of-border: #EAEAEA;
             --of-text: #242529;
             --of-red: #E0245E;
+            --of-green: #28a745;
         }
 
         body, html {
@@ -114,7 +115,6 @@
         .nav-icon { width: 26px; height: 26px; fill: none; stroke: var(--of-gray); stroke-width: 1.5; }
         .nav-item.active .nav-icon { stroke: var(--of-blue); fill: rgba(0, 175, 240, 0.1); }
         
-        /* GLOBITOS DE NOTIFICACIÓN */
         .nav-badge {
             position: absolute; top: 4px; right: 2px; background: var(--of-red); color: white;
             font-size: 10px; font-weight: bold; padding: 2px 5px; border-radius: 10px;
@@ -169,6 +169,28 @@
         .notif-time { font-size: 12px; color: var(--of-gray); margin-top: 4px; }
         .notif-delete-btn { background: none; border: none; font-size: 18px; cursor: pointer; color: #888; padding: 5px 10px; display: flex; align-items: center; justify-content: center; transition: 0.2s; }
         .notif-delete-btn:active { transform: scale(0.9); color: var(--of-red); }
+
+        /* MODAL ENVIAR PROPINA */
+        .tip-modal-box {
+            background: white; border-radius: 24px 24px 0 0; padding: 25px 20px;
+            display: flex; flex-direction: column; gap: 15px; animation: slideUp 0.3s ease-out;
+        }
+        .tip-presets { display: flex; gap: 10px; justify-content: space-between; }
+        .btn-preset {
+            flex: 1; padding: 12px; border: 2px solid var(--of-border); border-radius: 12px;
+            background: transparent; font-weight: bold; font-size: 15px; color: var(--of-text);
+            cursor: pointer; transition: 0.2s; text-align: center;
+        }
+        .btn-preset.active { border-color: var(--of-blue); color: var(--of-blue); background: #f0f8ff; }
+        .tip-input {
+            width: 100%; padding: 14px; border: 2px solid var(--of-border); border-radius: 12px;
+            font-size: 18px; font-weight: bold; text-align: center; outline: none; box-sizing: border-box;
+        }
+        .tip-input:focus { border-color: var(--of-blue); }
+        .btn-send-tip {
+            background: var(--of-blue); color: white; border: none; padding: 15px;
+            border-radius: 25px; font-weight: bold; font-size: 16px; cursor: pointer; text-transform: uppercase;
+        }
 
         /* HISTORIAS / ESTADOS */
         #createStoryModal { background: #111; color: white; z-index: 4000; }
@@ -234,6 +256,30 @@
         <div id="searchResults" class="search-results-container"></div>
     </div>
 
+    <!-- MODAL DE ENVIAR PROPINA -->
+    <div id="tipModal" class="full-modal" style="background: rgba(0,0,0,0.5); justify-content: flex-end;">
+        <div style="flex-grow: 1;" onclick="cerrarTipModal()"></div>
+        <div class="tip-modal-box">
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+                <span style="font-weight: 800; font-size: 18px;">Enviar propina a <span id="tipTargetName" style="color:var(--of-blue);">Creador</span></span>
+                <button onclick="cerrarTipModal()" style="background:none; border:none; font-size:24px; cursor:pointer;">&times;</button>
+            </div>
+            
+            <p style="font-size: 13px; color: var(--of-gray); margin:0;">El monto seleccionado se descontará directamente de tu Wallet.</p>
+            
+            <div class="tip-presets">
+                <button class="btn-preset active" onclick="seleccionarPreset(10, this)">$10</button>
+                <button class="btn-preset" onclick="seleccionarPreset(50, this)">$50</button>
+                <button class="btn-preset" onclick="seleccionarPreset(100, this)">$100</button>
+                <button class="btn-preset" onclick="seleccionarPreset(200, this)">$200</button>
+            </div>
+
+            <input type="number" id="tipAmountInput" class="tip-input" value="10" min="10" placeholder="Monto personalizado ($)">
+
+            <button id="btnProcesarPropina" class="btn-send-tip" onclick="procesarPropina()">Enviar Propina</button>
+        </div>
+    </div>
+
     <!-- MODAL DE NOTIFICACIONES -->
     <div id="notificationsModal" class="full-modal">
         <div class="compose-header">
@@ -243,9 +289,7 @@
             <span class="compose-title">Notificaciones</span>
             <button id="btnVaciarNotif" onclick="vaciarNotificaciones()" style="background:none; border:none; font-size:20px; cursor:pointer;" title="Eliminar todas">🗑️</button>
         </div>
-        <div class="notif-list-area" id="notifListArea">
-            <!-- Inyectadas con JS -->
-        </div>
+        <div class="notif-list-area" id="notifListArea"></div>
     </div>
 
     <!-- MODAL DE COMPONER PUBLICACIÓN (POST) -->
@@ -426,8 +470,11 @@
 
         const IMGBB_API_KEY = "88f000b35b55f78d1f16c9d9ea939050";
         let miUsuarioGlobal = null; 
-        
         let ordenAleatorioPosts = [];
+
+        // Variables temporales para la propina activa
+        let tipTargetOwnerUid = null;
+        let tipTargetNombre = null;
 
         function cerrarMenus() {
             document.querySelectorAll('.post-dropdown').forEach(d => d.classList.remove('active'));
@@ -442,7 +489,6 @@
         } else {
             auth.onAuthStateChanged((user) => {
                 if (user) {
-                    // CAMBIO A .get() PARA AHORRAR LECTURAS
                     db.collection('usuarios').doc(user.uid).get().then((doc) => {
                         if (doc.exists) {
                             miUsuarioGlobal = doc.data();
@@ -478,6 +524,103 @@
 
         function irArriba() {
             document.getElementById('feedContainer').scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        // ==========================================
+        // SISTEMA DE PROPINAS (ESTILO ONLYFANS)
+        // ==========================================
+        function abrirModalPropina(ownerUid, ownerNombre) {
+            if (ownerUid === miUsuarioGlobal.uid) {
+                alert("No puedes enviarte propinas a ti mismo.");
+                return;
+            }
+
+            tipTargetOwnerUid = ownerUid;
+            tipTargetNombre = ownerNombre;
+            
+            document.getElementById('tipTargetName').innerText = ownerNombre;
+            document.getElementById('tipAmountInput').value = 10;
+            document.getElementById('tipModal').style.display = 'flex';
+        }
+
+        function cerrarTipModal() {
+            document.getElementById('tipModal').style.display = 'none';
+            tipTargetOwnerUid = null;
+            tipTargetNombre = null;
+        }
+
+        function seleccionarPreset(monto, btn) {
+            document.querySelectorAll('.btn-preset').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            document.getElementById('tipAmountInput').value = monto;
+        }
+
+        async function procesarPropina() {
+            const montoInput = parseFloat(document.getElementById('tipAmountInput').value);
+            
+            if (isNaN(montoInput) || montoInput < 10) {
+                alert("El monto mínimo de propina es de $10.00 MXN.");
+                return;
+            }
+
+            // 1. Obtener saldo actualizado
+            const userDoc = await db.collection('usuarios').doc(miUsuarioGlobal.uid).get();
+            const saldoActual = userDoc.data().saldo || 0;
+
+            if (saldoActual < montoInput) {
+                alert(`Saldo insuficiente. Tu saldo actual es de $${saldoActual.toFixed(2)} MXN. Recarga tu Wallet en Configuraciones.`);
+                return;
+            }
+
+            const btn = document.getElementById('btnProcesarPropina');
+            btn.disabled = true;
+            btn.innerText = "Procesando...";
+
+            try {
+                // Cálculo 80/20 estilo OnlyFans
+                const gananciaCreador = montoInput * 0.80; // 80% para el creador
+                const comisionPlataforma = montoInput * 0.20; // 20% para la plataforma
+
+                const batch = db.batch();
+
+                // a) Descontar el 100% de la propina al usuario emisor
+                const senderRef = db.collection('usuarios').doc(miUsuarioGlobal.uid);
+                batch.update(senderRef, {
+                    saldo: firebase.firestore.FieldValue.increment(-montoInput)
+                });
+
+               // b) Acreditar el 80% al creador objetivo EN SUS GANANCIAS
+const receiverRef = db.collection('usuarios').doc(tipTargetOwnerUid);
+batch.update(receiverRef, {
+    ganancias: firebase.firestore.FieldValue.increment(gananciaCreador)
+});
+
+
+                // c) Registrar notificación para el creador
+                const notifRef = db.collection('usuarios').doc(tipTargetOwnerUid).collection('notificaciones').doc();
+                batch.set(notifRef, {
+                    tipo: 'tip',
+                    autor: miUsuarioGlobal.nombre || 'Un Fan',
+                    foto: miUsuarioGlobal.fotoPerfil || `https://ui-avatars.com/api/?name=${miUsuarioGlobal.nombre || 'U'}&background=random`,
+                    texto: `te ha enviado una propina de $${montoInput.toFixed(2)} MXN.`,
+                    leida: false,
+                    timestamp: firebase.firestore.FieldValue.serverTimestamp()
+                });
+
+                await batch.commit();
+
+                // Actualizar localmente el objeto global
+                miUsuarioGlobal.saldo = saldoActual - montoInput;
+
+                alert(`¡Propina enviada con éxito! Le enviaste $${montoInput.toFixed(2)} MXN a ${tipTargetNombre}.`);
+                cerrarTipModal();
+
+            } catch (error) {
+                alert("Error al procesar la propina: " + error.message);
+            } finally {
+                btn.disabled = false;
+                btn.innerText = "Enviar Propina";
+            }
         }
 
         // ==========================================
@@ -789,7 +932,7 @@
                                     </div>
                                 </div>
                                 <div class="right-actions">
-                                    <div class="tip-btn" onclick="alert('Funcionalidad de propinas próximamente')">
+                                    <div class="tip-btn" onclick="abrirModalPropina('${post.uid}', '${post.autor}')">
                                         <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1.41 16.09V20h-2.67v-1.93c-1.71-.36-3.16-1.46-3.27-3.4h1.96c.1 1.05.82 1.87 2.65 1.87 1.96 0 2.4-.98 2.4-1.59 0-.83-.44-1.61-2.67-2.14-2.48-.6-4.18-1.62-4.18-3.67 0-1.72 1.39-2.84 3.11-3.21V4h2.67v1.95c1.86.45 2.79 1.86 2.85 3.39H14.3c-.05-1.11-.64-1.87-2.22-1.87-1.5 0-2.4.68-2.4 1.64 0 .84.65 1.39 2.67 1.91s4.18 1.39 4.18 3.91c-.01 1.83-1.38 2.83-3.12 3.16z"></path></svg>
                                         Enviar propina
                                     </div>
