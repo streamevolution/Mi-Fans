@@ -379,7 +379,6 @@
                 userNameCorregido = '@' + userNameCorregido;
             }
 
-            // VALIDAR NOMBRE DE USUARIO ÚNICO (Evita duplicados)
             if (userNameCorregido !== currentUserData.username) {
                 const snapUser = await db.collection('usuarios').where('username', '==', userNameCorregido).limit(1).get();
                 if (!snapUser.empty) {
@@ -389,7 +388,6 @@
                 }
             }
 
-            // GENERAR FOTO POR DEFECTO SI ESTÁ VACÍA
             let fotoPerfilUrl = document.getElementById('inpUrlPerfil').value;
             let nombreIngresado = document.getElementById('inpNombre').value;
             if (!fotoPerfilUrl || fotoPerfilUrl.trim() === "") {
@@ -411,13 +409,11 @@
             };
             
             try {
-                // Actualizar cuenta principal
                 await db.collection('usuarios').doc(currentUserAuth.uid).update(nuevosDatos);
                 
-                // Actualizar todas las publicaciones antiguas para que el nombre y foto cambien de inmediato
                 const batch = db.batch();
-                const postsSnap = await db.collection('publicaciones').where('uid', '==', currentUserAuth.uid).get();
                 
+                const postsSnap = await db.collection('publicaciones').where('uid', '==', currentUserAuth.uid).get();
                 postsSnap.forEach(doc => {
                     batch.update(doc.ref, {
                         autor: nuevosDatos.nombre,
@@ -426,9 +422,18 @@
                     });
                 });
                 
+                const historiasSnap = await db.collection('historias').where('uid', '==', currentUserAuth.uid).get();
+                historiasSnap.forEach(doc => {
+                    batch.update(doc.ref, {
+                        autor: nuevosDatos.nombre,
+                        usuario: nuevosDatos.username,
+                        fotoAutor: nuevosDatos.fotoPerfil
+                    });
+                });
+
                 await batch.commit();
 
-                alert("¡Perfil y publicaciones actualizadas con éxito!");
+                alert("¡Perfil, publicaciones e historias actualizadas con éxito!");
                 closeScreen('screen-cuenta');
 
             } catch(e) {
