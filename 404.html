@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Mi Peerfil - Mi Fans</title>
+    <title>Mi Perfil - Mi Fans</title>
     
     <!-- SDKs de Firebase (v8) -->
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
@@ -91,7 +91,6 @@
         .info-value { font-weight: 700; color: #050505;}
         .info-placeholder { color: #8c939d; font-style: italic; font-weight: normal;}
 
-        /* Pantalla de carga, ahora en flex por defecto */
         #loadingOverlay {
             position: absolute; top: 0; left: 0; width: 100%; height: 100%;
             background: rgba(255,255,255,0.85); z-index: 1000; display: flex;
@@ -114,11 +113,12 @@
         <!-- Estado de Carga -->
         <div id="loadingOverlay">
             <span style="font-size: 35px; margin-bottom: 12px;">⏳</span>
-            <span id="loadingText" style="font-size: 16px;">Cargando perfil...</span>
+            <span id="loadingText" style="font-size: 16px;">Buscando usuario...</span>
         </div>
 
         <div class="top-nav">
-            <button class="btn-back" onclick="window.history.back() || (window.location.href='index.html')">
+            <!-- NOTA: Ruta absoluta /index.html por si estamos en /@usuario -->
+            <button class="btn-back" onclick="window.location.href='/index.html'">
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
             </button>
         </div>
@@ -177,44 +177,51 @@
 
         auth.onAuthStateChanged(async (user) => {
             if (!user) {
-                window.location.href = "login.html";
+                // Ruta absoluta
+                window.location.href = "/login.html";
                 return;
             }
             currentUserId = user.uid;
 
-            // 1. LEER LA URL
+            // 1. LEER LA URL CON EL TRUCO DEL 404
             const path = decodeURIComponent(window.location.pathname);
-            const parts = path.split('/');
-            const lastPart = parts[parts.length - 1];
+            // Quitamos las diagonales del principio y final
+            const cleanPath = path.replace(/^\/|\/$/g, '');
+            const parts = cleanPath.split('/');
+            let lastPart = parts[parts.length - 1];
 
-            let requestedUsername = null;
-            if (lastPart.startsWith('@')) {
-                requestedUsername = lastPart;
+            // Si el usuario entra directamente a /perfil, /404, o /404.html por accidente, omitimos la búsqueda de arroba
+            if (lastPart === '404' || lastPart === '404.html' || lastPart === 'perfil') {
+                lastPart = '';
             }
 
-            if (requestedUsername) {
+            if (lastPart && lastPart !== '') {
+                // Si la URL es mifans.com/juan, le forzamos el arroba para que busque @juan
+                let requestedUsername = lastPart.startsWith('@') ? lastPart : '@' + lastPart;
+                requestedUsername = requestedUsername.toLowerCase();
+
                 // 2. BUSCAR AL USUARIO EN LA BASE DE DATOS
                 try {
-                    const snapshot = await db.collection('usuarios').where('username', '==', requestedUsername.toLowerCase()).get();
+                    const snapshot = await db.collection('usuarios').where('username', '==', requestedUsername).get();
 
                     if (snapshot.empty) {
-                        alert(`El usuario ${requestedUsername} no existe o el enlace es incorrecto.`);
-                        window.location.href = "index.html"; 
+                        alert(`El usuario ${requestedUsername} no existe o no se ha registrado.`);
+                        window.location.href = "/index.html"; 
                         return;
                     }
 
-                    // 3. CARGAR EL PERFIL DE LA OTRA PERSONA
+                    // 3. CARGAR EL PERFIL ENCONTRADO
                     const userDoc = snapshot.docs[0];
                     const isMyProfile = (userDoc.id === currentUserId);
                     cargarDatosPerfil(userDoc.id, isMyProfile);
 
                 } catch (error) {
                     console.error("Error buscando perfil:", error);
-                    alert("Hubo un error al buscar el perfil.");
-                    window.location.href = "index.html";
+                    alert("Hubo un error al buscar el perfil. Revisa tu conexión.");
+                    window.location.href = "/index.html";
                 }
             } else {
-                // 4. SI NO HAY '@', CARGAMOS NUESTRO PROPIO PERFIL
+                // 4. SI LA RUTA ESTÁ VACÍA DE USUARIOS, CARGA TU PROPIO PERFIL
                 cargarDatosPerfil(currentUserId, true);
             }
         });
@@ -249,7 +256,8 @@
                         const btnMensaje = document.createElement('button');
                         btnMensaje.className = "btn-message-profile";
                         btnMensaje.innerText = "💬 Enviar Mensaje";
-                        btnMensaje.onclick = () => window.location.href = `chat.html?id=${uidToLoad}`;
+                        // Ruta absoluta para no encadenar URLs
+                        btnMensaje.onclick = () => window.location.href = `/chat.html?id=${uidToLoad}`;
                         document.getElementById('messageButtonContainer').appendChild(btnMensaje);
                     }
 
@@ -258,7 +266,7 @@
             }).catch(e => {
                 console.error("Error al cargar perfil:", e);
                 alert("No se pudo cargar la información del perfil.");
-                window.location.href = "index.html";
+                window.location.href = "/index.html";
             });
         }
 
