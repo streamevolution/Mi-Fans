@@ -113,7 +113,6 @@
         .nav-icon { width: 26px; height: 26px; fill: none; stroke: var(--of-gray); stroke-width: 1.5; }
         .nav-item.active .nav-icon { stroke: var(--of-blue); fill: rgba(0, 175, 240, 0.1); }
         
-        /* GLOBITOS DE NOTIFICACIÓN */
         .nav-badge {
             position: absolute; top: 4px; right: 2px; background: var(--of-red); color: white;
             font-size: 10px; font-weight: bold; padding: 2px 5px; border-radius: 10px;
@@ -159,13 +158,16 @@
 
         /* NOTIFICACIONES */
         .notif-list-area { flex-grow: 1; overflow-y: auto; background: #fff; }
-        .notif-item { display: flex; gap: 12px; padding: 15px; border-bottom: 1px solid var(--of-border); cursor: pointer; transition: 0.2s; }
+        .notif-item { display: flex; gap: 12px; padding: 15px; border-bottom: 1px solid var(--of-border); cursor: pointer; transition: 0.2s; align-items: center;}
         .notif-item:active { background: #f9f9f9; }
         .notif-item.unread { background: #f0f8ff; }
         .notif-avatar { width: 44px; height: 44px; border-radius: 50%; object-fit: cover; }
         .notif-content { flex-grow: 1; display: flex; flex-direction: column; justify-content: center;}
         .notif-text { font-size: 14px; color: var(--of-text); line-height: 1.4;}
         .notif-time { font-size: 12px; color: var(--of-gray); margin-top: 4px; }
+        
+        .notif-delete-btn { background: none; border: none; font-size: 18px; cursor: pointer; color: #888; padding: 5px 10px; display: flex; align-items: center; justify-content: center; transition: 0.2s; }
+        .notif-delete-btn:active { transform: scale(0.9); color: var(--of-red); }
 
         /* HISTORIAS / ESTADOS */
         #createStoryModal { background: #111; color: white; z-index: 4000; }
@@ -231,14 +233,15 @@
         <div id="searchResults" class="search-results-container"></div>
     </div>
 
-    <!-- MODAL DE NOTIFICACIONES (TIPO FACEBOOK) -->
+    <!-- MODAL DE NOTIFICACIONES -->
     <div id="notificationsModal" class="full-modal">
         <div class="compose-header">
             <button class="compose-close" onclick="cerrarNotificaciones()">
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
             </button>
             <span class="compose-title">Notificaciones</span>
-            <div style="width:24px;"></div> <!-- Espaciador para centrar título -->
+            <!-- Bote de Basura: Eliminar todas -->
+            <button id="btnVaciarNotif" onclick="vaciarNotificaciones()" style="background:none; border:none; font-size:20px; cursor:pointer;" title="Eliminar todas">🗑️</button>
         </div>
         <div class="notif-list-area" id="notifListArea">
             <!-- Inyectadas con JS -->
@@ -419,6 +422,9 @@
         
         const IMGBB_API_KEY = "88f000b35b55f78d1f16c9d9ea939050";
         let miUsuarioGlobal = null; 
+        
+        // Variable para controlar la aleatoriedad sin gastar recursos extra
+        let ordenAleatorioPosts = [];
 
         function cerrarMenus() {
             document.querySelectorAll('.post-dropdown').forEach(d => d.classList.remove('active'));
@@ -447,7 +453,7 @@
                         document.getElementById('loadingScreen').style.display = 'none';
                         cargarPublicaciones();
                         cargarHistorias();
-                        escucharInsignias(); // Enciende los contadores de notificaciones
+                        escucharInsignias(); 
                     }).catch(() => { document.getElementById('loadingScreen').style.display = 'none'; });
                 } else {
                     window.location.href = "login.html";
@@ -455,15 +461,23 @@
             });
         }
 
-        // ==========================================
-        // BOTONES DE LA BARRA INFERIOR (CASITA Y GLOBOS)
-        // ==========================================
+        function formatearTiempo(timestamp) {
+            if (!timestamp) return "Ahora";
+            const diffSegundos = Math.floor((new Date() - timestamp.toDate()) / 1000);
+            if (diffSegundos < 60) return `Hace ${diffSegundos} seg`;
+            if (diffSegundos < 3600) return `Hace ${Math.floor(diffSegundos / 60)} min`;
+            if (diffSegundos < 86400) return `Hace ${Math.floor(diffSegundos / 3600)} h`;
+            return `Hace ${Math.floor(diffSegundos / 86400)} d`;
+        }
+
         function irArriba() {
             document.getElementById('feedContainer').scrollTo({ top: 0, behavior: 'smooth' });
         }
 
+        // ==========================================
+        // NOTIFICACIONES E INSIGNIAS
+        // ==========================================
         function escucharInsignias() {
-            // Escuchar Mensajes no leídos (Ahorrando recursos, solo busca los "false")
             db.collection('usuarios').doc(miUsuarioGlobal.uid).collection('inbox')
               .where('leido', '==', false).onSnapshot(snap => {
                   const bMsg = document.getElementById('badge-msg');
@@ -471,7 +485,6 @@
                   else { bMsg.style.display = 'block'; bMsg.innerText = snap.size; }
               });
               
-            // Escuchar Notificaciones no leídas
             db.collection('usuarios').doc(miUsuarioGlobal.uid).collection('notificaciones')
               .where('leida', '==', false).onSnapshot(snap => {
                   const bNotif = document.getElementById('badge-notif');
@@ -480,13 +493,11 @@
               });
         }
 
-        // NOTIFICACIONES
         function abrirNotificaciones() {
             document.getElementById('notificationsModal').style.display = 'flex';
             const listArea = document.getElementById('notifListArea');
             listArea.innerHTML = '<div style="text-align:center; padding:20px; color:#888;">Cargando...</div>';
             
-            // Descarga las últimas 20 notificaciones (1 sola lectura de bloque)
             db.collection('usuarios').doc(miUsuarioGlobal.uid).collection('notificaciones')
               .orderBy('timestamp', 'desc').limit(20).get().then(snap => {
                   if(snap.empty) {
@@ -503,23 +514,46 @@
                       const bgClass = n.leida ? '' : 'unread';
                       
                       html += `
-                      <div class="notif-item ${bgClass}">
+                      <div class="notif-item ${bgClass}" id="notif-${doc.id}">
                           <img src="${n.foto}" class="notif-avatar">
                           <div class="notif-content">
                               <span class="notif-text"><strong>${n.autor}</strong> ${n.texto}</span>
                               <span class="notif-time">${timeStr}</span>
                           </div>
+                          <button class="notif-delete-btn" onclick="eliminarNotificacion(event, '${doc.id}')" title="Eliminar">🗑️</button>
                       </div>`;
                       
-                      if(!n.leida) batch.update(doc.ref, { leida: true }); // Se marcan como leídas sin gastar lecturas
+                      if(!n.leida) batch.update(doc.ref, { leida: true }); 
                   });
                   listArea.innerHTML = html;
                   batch.commit();
               });
         }
 
-        function cerrarNotificaciones() {
-            document.getElementById('notificationsModal').style.display = 'none';
+        function cerrarNotificaciones() { document.getElementById('notificationsModal').style.display = 'none'; }
+
+        function eliminarNotificacion(e, id) {
+            e.stopPropagation(); // Evita clics accidentales
+            db.collection('usuarios').doc(miUsuarioGlobal.uid).collection('notificaciones').doc(id).delete()
+            .then(() => {
+                const el = document.getElementById('notif-' + id);
+                if(el) el.remove();
+            }).catch(err => console.log("Error", err));
+        }
+
+        async function vaciarNotificaciones() {
+            if(!confirm("¿Eliminar TODAS tus notificaciones de forma permanente?")) return;
+            const btn = document.getElementById('btnVaciarNotif');
+            btn.innerText = "⏳"; btn.disabled = true;
+            
+            try {
+                const snapshot = await db.collection('usuarios').doc(miUsuarioGlobal.uid).collection('notificaciones').get();
+                const batch = db.batch();
+                snapshot.docs.forEach(doc => batch.delete(doc.ref));
+                await batch.commit();
+                document.getElementById('notifListArea').innerHTML = '<div style="text-align:center; padding:20px; color:#888;">No tienes notificaciones.</div>';
+            } catch(e) { alert("Error al vaciar"); }
+            finally { btn.innerText = "🗑️"; btn.disabled = false; }
         }
 
         // ==========================================
@@ -573,7 +607,7 @@
         }
 
         // ==========================================
-        // PUBLICACIONES Y MENÚ DE POSTS
+        // PUBLICACIONES Y FEED ALEATORIO (7 DÍAS)
         // ==========================================
         let archivoImagenSeleccionado = null;
         let postParaComentarId = null;
@@ -630,40 +664,18 @@
             } catch (error) { alert("Error: " + error.message); } finally { btnPublish.disabled = false; btnPublish.innerText = "Publicar"; }
         }
 
-        function formatearTiempo(timestamp) {
-            if (!timestamp) return "Ahora";
-            const diffSegundos = Math.floor((new Date() - timestamp.toDate()) / 1000);
-            if (diffSegundos < 60) return `Hace ${diffSegundos} seg`;
-            if (diffSegundos < 3600) return `Hace ${Math.floor(diffSegundos / 60)} min`;
-            if (diffSegundos < 86400) return `Hace ${Math.floor(diffSegundos / 3600)} h`;
-            return `Hace ${Math.floor(diffSegundos / 86400)} d`;
-        }
-
-        function togglePostMenu(e, postId) {
-            e.stopPropagation(); 
-            cerrarMenus(); 
-            document.getElementById('menu-' + postId).classList.toggle('active');
-        }
-
+        function togglePostMenu(e, postId) { e.stopPropagation(); cerrarMenus(); document.getElementById('menu-' + postId).classList.toggle('active'); }
         async function eliminarPost(e, postId) {
             e.stopPropagation(); 
             if(confirm("¿Seguro que deseas eliminar esta publicación? Se borrará para siempre.")) {
-                try {
-                    await db.collection('publicaciones').doc(postId).delete();
-                } catch(err) { alert("Error al eliminar la publicación."); }
+                try { await db.collection('publicaciones').doc(postId).delete(); } catch(err) { alert("Error al eliminar la publicación."); }
             }
         }
-
-        function reportarPost(e) {
-            e.stopPropagation(); 
-            alert('Publicación reportada a los administradores.');
-            cerrarMenus();
-        }
+        function reportarPost(e) { e.stopPropagation(); alert('Publicación reportada a los administradores.'); cerrarMenus(); }
 
         function toggleLike(postId, isLikedStr, ownerUid) {
             const isLiked = isLikedStr === 'true';
             const postRef = db.collection('publicaciones').doc(postId);
-            
             const btnText = document.getElementById('like-text-' + postId);
             const btnIcon = document.getElementById('like-icon-' + postId);
             
@@ -671,7 +683,6 @@
                 btnText.innerText = parseInt(btnText.innerText) - 1;
                 btnText.classList.remove('heart-text-active');
                 btnIcon.classList.remove('heart-filled');
-                
                 postRef.update({
                     likedBy: firebase.firestore.FieldValue.arrayRemove(miUsuarioGlobal.uid),
                     likes: firebase.firestore.FieldValue.increment(-1)
@@ -680,13 +691,11 @@
                 btnText.innerText = parseInt(btnText.innerText) + 1;
                 btnText.classList.add('heart-text-active');
                 btnIcon.classList.add('heart-filled');
-
                 postRef.update({
                     likedBy: firebase.firestore.FieldValue.arrayUnion(miUsuarioGlobal.uid),
                     likes: firebase.firestore.FieldValue.increment(1)
                 }).catch(e => console.log('Error', e));
 
-                // ENVIAR NOTIFICACIÓN AUTOMÁTICA AL DUEÑO DEL POST (Gasto: 1 escritura)
                 if(ownerUid !== miUsuarioGlobal.uid) {
                     db.collection('usuarios').doc(ownerUid).collection('notificaciones').add({
                         tipo: 'like', autor: miUsuarioGlobal.nombre, foto: miUsuarioGlobal.fotoPerfil || `https://ui-avatars.com/api/?name=${miUsuarioGlobal.nombre}&background=random`,
@@ -696,25 +705,117 @@
             }
         }
 
+        // CARGAR EL FEED EN MODO ALEATORIO (SOLO ÚLTIMOS 7 DÍAS)
+        function cargarPublicaciones() {
+            // Pedimos 30 para tener variedad sin gastar mucho
+            db.collection('publicaciones').orderBy('timestamp', 'desc').limit(30).onSnapshot((snapshot) => {
+                const postsArea = document.getElementById('postsArea');
+                if (snapshot.empty) { postsArea.innerHTML = '<div style="padding: 20px; text-align: center; color: #888;">No hay publicaciones aún. ¡Sé el primero!</div>'; return; }
+
+                const ahora = new Date().getTime();
+                const sieteDiasMs = 7 * 24 * 60 * 60 * 1000;
+                let postsValidos = [];
+
+                snapshot.forEach(doc => {
+                    const post = doc.data(); 
+                    const postTime = post.timestamp ? post.timestamp.toDate().getTime() : ahora;
+                    // Solo agregamos si tiene 7 días o menos
+                    if (ahora - postTime <= sieteDiasMs) {
+                        postsValidos.push({ id: doc.id, data: post, time: postTime });
+                    }
+                });
+
+                // Extraemos los IDs de esta lectura
+                const idsActuales = postsValidos.map(p => p.id);
+
+                // Mezclamos en memoria JS (0 costo Firebase)
+                if (ordenAleatorioPosts.length === 0) {
+                    ordenAleatorioPosts = [...idsActuales].sort(() => Math.random() - 0.5);
+                } else {
+                    const nuevosIds = idsActuales.filter(id => !ordenAleatorioPosts.includes(id));
+                    ordenAleatorioPosts = [...nuevosIds, ...ordenAleatorioPosts]; // Los nuevos arriba
+                }
+
+                // Ordenamos los posts según nuestro arreglo aleatorio guardado
+                postsValidos.sort((a, b) => ordenAleatorioPosts.indexOf(a.id) - ordenAleatorioPosts.indexOf(b.id));
+
+                let postsHTML = '';
+                const verifiedSVG = `<svg class="verified-badge" viewBox="0 0 24 24"><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10 10-4.5 10-10S17.5 2 12 2zm-1.9 14.7L6 12.6l1.5-1.5 2.6 2.6 6.4-6.4 1.5 1.5-7.9 7.9z"></path></svg>`;
+
+                postsValidos.forEach(item => {
+                    const post = item.data; 
+                    const tiempoStr = formatearTiempo(post.timestamp);
+                    const imagenHTML = post.imagen ? `<img src="${post.imagen}" class="post-image">` : '';
+                    
+                    const isLiked = post.likedBy && post.likedBy.includes(miUsuarioGlobal.uid);
+                    const isLikedStr = isLiked ? 'true' : 'false';
+                    const heartIconClass = isLiked ? 'post-action-icon heart-filled' : 'post-action-icon';
+                    const heartTextClass = isLiked ? 'action-group heart-text-active' : 'action-group';
+
+                    const isMine = post.uid === miUsuarioGlobal.uid;
+                    const menuOptions = isMine 
+                        ? `<div class="post-dropdown-item danger" onclick="eliminarPost(event, '${item.id}')">Eliminar publicación</div>`
+                        : `<div class="post-dropdown-item" onclick="reportarPost(event)">Reportar publicación</div>`;
+
+                    postsHTML += `
+                        <div class="post-card">
+                            <div class="post-header" onclick="window.location.href='/${post.usuario}'">
+                                <div class="post-header-left">
+                                    <img src="${post.fotoAutor}" class="post-header-avatar">
+                                    <div class="post-author-info">
+                                        <span class="post-author-name">${post.autor} ${verifiedSVG}</span>
+                                        <span class="post-author-handle">${post.usuario}</span>
+                                    </div>
+                                </div>
+                                <div class="post-header-right">
+                                    <div class="post-time">${tiempoStr}</div>
+                                    <button class="post-menu-btn" onclick="togglePostMenu(event, '${item.id}')">⋮</button>
+                                    <div id="menu-${item.id}" class="post-dropdown">
+                                        ${menuOptions}
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="post-text">${post.texto}</div>
+                            ${imagenHTML}
+                            <div class="post-actions-bar">
+                                <div class="left-actions">
+                                    <div class="${heartTextClass}" onclick="toggleLike('${item.id}', '${isLikedStr}', '${post.uid}')">
+                                        <svg id="like-icon-${item.id}" class="${heartIconClass}" viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>
+                                        <span id="like-text-${item.id}">${post.likes || 0}</span>
+                                    </div>
+                                    <div class="action-group" onclick="abrirComentarios('${item.id}', '${post.uid}')">
+                                        <svg class="post-action-icon" viewBox="0 0 24 24"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path></svg>
+                                        <span>${post.comments || 0}</span>
+                                    </div>
+                                </div>
+                                <div class="right-actions">
+                                    <div class="tip-btn" onclick="alert('Funcionalidad de propinas próximamente')">
+                                        <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1.41 16.09V20h-2.67v-1.93c-1.71-.36-3.16-1.46-3.27-3.4h1.96c.1 1.05.82 1.87 2.65 1.87 1.96 0 2.4-.98 2.4-1.59 0-.83-.44-1.61-2.67-2.14-2.48-.6-4.18-1.62-4.18-3.67 0-1.72 1.39-2.84 3.11-3.21V4h2.67v1.95c1.86.45 2.79 1.86 2.85 3.39H14.3c-.05-1.11-.64-1.87-2.22-1.87-1.5 0-2.4.68-2.4 1.64 0 .84.65 1.39 2.67 1.91s4.18 1.39 4.18 3.91c-.01 1.83-1.38 2.83-3.12 3.16z"></path></svg>
+                                        Enviar propina
+                                    </div>
+                                </div>
+                            </div>
+                        </div>`;
+                });
+                postsArea.innerHTML = postsHTML;
+            });
+        }
+
         // ==========================================
-        // COMENTARIOS Y SUS NOTIFICACIONES
+        // COMENTARIOS
         // ==========================================
         function abrirComentarios(postId, ownerUid) {
-            postParaComentarId = postId;
-            postParaComentarOwnerUid = ownerUid;
+            postParaComentarId = postId; postParaComentarOwnerUid = ownerUid;
             document.getElementById('commentsModal').style.display = 'flex';
             document.getElementById('commentsListArea').innerHTML = '<div style="text-align: center; color: #888; padding: 20px;">Cargando comentarios...</div>';
             
             db.collection('publicaciones').doc(postId).collection('comentarios').orderBy('timestamp', 'asc').limit(50).get().then(snapshot => {
                 const area = document.getElementById('commentsListArea');
-                if (snapshot.empty) {
-                    area.innerHTML = '<div style="text-align: center; color: #888; padding: 20px;">No hay comentarios aún. ¡Sé el primero!</div>';
-                    return;
-                }
+                if (snapshot.empty) { area.innerHTML = '<div style="text-align: center; color: #888; padding: 20px;">No hay comentarios aún. ¡Sé el primero!</div>'; return; }
+                
                 let html = '';
                 snapshot.docs.forEach(doc => {
-                    const c = doc.data();
-                    const tiempoC = formatearTiempo(c.timestamp);
+                    const c = doc.data(); const tiempoC = formatearTiempo(c.timestamp);
                     html += `
                     <div class="comment-item">
                         <img src="${c.fotoAutor}" class="comment-avatar">
@@ -746,7 +847,6 @@
             });
             batch.update(postRef, { comments: firebase.firestore.FieldValue.increment(1) });
             
-            // ENVIAR NOTIFICACIÓN DE COMENTARIO
             if(postParaComentarOwnerUid && postParaComentarOwnerUid !== miUsuarioGlobal.uid) {
                 const notifRef = db.collection('usuarios').doc(postParaComentarOwnerUid).collection('notificaciones').doc();
                 batch.set(notifRef, {
@@ -756,75 +856,6 @@
             }
 
             batch.commit().then(() => { abrirComentarios(postParaComentarId, postParaComentarOwnerUid); });
-        }
-
-        // ==========================================
-        // FEED PRINCIPAL
-        // ==========================================
-        function cargarPublicaciones() {
-            db.collection('publicaciones').orderBy('timestamp', 'desc').limit(20).onSnapshot((snapshot) => {
-                const postsArea = document.getElementById('postsArea');
-                let postsHTML = '';
-                const verifiedSVG = `<svg class="verified-badge" viewBox="0 0 24 24"><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10 10-4.5 10-10S17.5 2 12 2zm-1.9 14.7L6 12.6l1.5-1.5 2.6 2.6 6.4-6.4 1.5 1.5-7.9 7.9z"></path></svg>`;
-
-                if (snapshot.empty) { postsArea.innerHTML = '<div style="padding: 20px; text-align: center; color: #888;">No hay publicaciones aún. ¡Sé el primero!</div>'; return; }
-
-                snapshot.forEach(doc => {
-                    const post = doc.data(); const tiempoStr = formatearTiempo(post.timestamp);
-                    const imagenHTML = post.imagen ? `<img src="${post.imagen}" class="post-image">` : '';
-                    
-                    const isLiked = post.likedBy && post.likedBy.includes(miUsuarioGlobal.uid);
-                    const isLikedStr = isLiked ? 'true' : 'false';
-                    const heartIconClass = isLiked ? 'post-action-icon heart-filled' : 'post-action-icon';
-                    const heartTextClass = isLiked ? 'action-group heart-text-active' : 'action-group';
-
-                    const isMine = post.uid === miUsuarioGlobal.uid;
-                    const menuOptions = isMine 
-                        ? `<div class="post-dropdown-item danger" onclick="eliminarPost(event, '${doc.id}')">Eliminar publicación</div>`
-                        : `<div class="post-dropdown-item" onclick="reportarPost(event)">Reportar publicación</div>`;
-
-                    postsHTML += `
-                        <div class="post-card">
-                            <div class="post-header" onclick="window.location.href='/${post.usuario}'">
-                                <div class="post-header-left">
-                                    <img src="${post.fotoAutor}" class="post-header-avatar">
-                                    <div class="post-author-info">
-                                        <span class="post-author-name">${post.autor} ${verifiedSVG}</span>
-                                        <span class="post-author-handle">${post.usuario}</span>
-                                    </div>
-                                </div>
-                                <div class="post-header-right">
-                                    <div class="post-time">${tiempoStr}</div>
-                                    <button class="post-menu-btn" onclick="togglePostMenu(event, '${doc.id}')">⋮</button>
-                                    <div id="menu-${doc.id}" class="post-dropdown">
-                                        ${menuOptions}
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="post-text">${post.texto}</div>
-                            ${imagenHTML}
-                            <div class="post-actions-bar">
-                                <div class="left-actions">
-                                    <div class="${heartTextClass}" onclick="toggleLike('${doc.id}', '${isLikedStr}', '${post.uid}')">
-                                        <svg id="like-icon-${doc.id}" class="${heartIconClass}" viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>
-                                        <span id="like-text-${doc.id}">${post.likes || 0}</span>
-                                    </div>
-                                    <div class="action-group" onclick="abrirComentarios('${doc.id}', '${post.uid}')">
-                                        <svg class="post-action-icon" viewBox="0 0 24 24"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path></svg>
-                                        <span>${post.comments || 0}</span>
-                                    </div>
-                                </div>
-                                <div class="right-actions">
-                                    <div class="tip-btn" onclick="alert('Funcionalidad de propinas próximamente')">
-                                        <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1.41 16.09V20h-2.67v-1.93c-1.71-.36-3.16-1.46-3.27-3.4h1.96c.1 1.05.82 1.87 2.65 1.87 1.96 0 2.4-.98 2.4-1.59 0-.83-.44-1.61-2.67-2.14-2.48-.6-4.18-1.62-4.18-3.67 0-1.72 1.39-2.84 3.11-3.21V4h2.67v1.95c1.86.45 2.79 1.86 2.85 3.39H14.3c-.05-1.11-.64-1.87-2.22-1.87-1.5 0-2.4.68-2.4 1.64 0 .84.65 1.39 2.67 1.91s4.18 1.39 4.18 3.91c-.01 1.83-1.38 2.83-3.12 3.16z"></path></svg>
-                                        Enviar propina
-                                    </div>
-                                </div>
-                            </div>
-                        </div>`;
-                });
-                postsArea.innerHTML = postsHTML;
-            });
         }
 
         // ==========================================
@@ -844,18 +875,13 @@
                 historiasGlobales = {};
                 const ahora = Date.now();
                 const unDiaMs = 24 * 60 * 60 * 1000;
-                
                 let validStories = [];
+                
                 snapshot.forEach(doc => {
                     const data = doc.data();
                     if (data.timestamp) {
-                        const timeMs = data.timestamp.toDate().getTime();
-                        if (ahora - timeMs < unDiaMs) { 
-                            validStories.push({id: doc.id, ...data});
-                        }
-                    } else {
-                        validStories.push({id: doc.id, ...data});
-                    }
+                        if (ahora - data.timestamp.toDate().getTime() < unDiaMs) validStories.push({id: doc.id, ...data});
+                    } else { validStories.push({id: doc.id, ...data}); }
                 });
                 
                 validStories.sort((a,b) => {
@@ -873,9 +899,7 @@
         }
 
         function renderizarHistoriasUI() {
-            const area = document.getElementById('storiesArea');
-            let html = '';
-            
+            const area = document.getElementById('storiesArea'); let html = '';
             const misHistorias = historiasGlobales[miUsuarioGlobal.uid];
             const defAvatar = miUsuarioGlobal.fotoPerfil || `https://ui-avatars.com/api/?name=${miUsuarioGlobal.nombre || 'U'}&background=random`;
             const tieneHistorias = misHistorias && misHistorias.length > 0;
@@ -902,9 +926,7 @@
 
             for (const uid in historiasGlobales) {
                 if (uid === miUsuarioGlobal.uid) continue;
-                const userStories = historiasGlobales[uid];
-                const authorInfo = userStories[0]; 
-                
+                const userStories = historiasGlobales[uid]; const authorInfo = userStories[0]; 
                 const lastStory = userStories[userStories.length-1].timestamp;
                 const lastMs = lastStory ? lastStory.toDate().getTime() : Date.now();
                 const viewMs = localStorage.getItem('visto_' + uid) || 0;
