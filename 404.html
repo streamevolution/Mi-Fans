@@ -187,37 +187,17 @@
         const db = firebase.firestore();
         
         const IMGBB_API_KEY = "88f000b35b55f78d1f16c9d9ea939050";
-        let currentUserId = null;
 
-        // SE ELIMINÓ auth.onAuthStateChanged PARA PERMITIR ACCESO PÚBLICO
-        document.addEventListener('DOMContentLoaded', async () => {
-            // Verificar el estado de la sesión, pero NO redirigir si no hay sesión
-            auth.onAuthStateChanged((user) => {
-                if (user) {
-                    currentUserId = user.uid;
-                }
-            });
+        auth.onAuthStateChanged(async (user) => {
+            const currentUserId = user ? user.uid : null;
 
+            // Lógica a prueba de balas para extraer el @usuario usando Regex
             const path = decodeURIComponent(window.location.pathname);
-            const cleanPath = path.replace(/^\/|\/$/g, '');
-            const parts = cleanPath.split('/');
-            let lastPart = parts[parts.length - 1];
+            const match = path.match(/@([^/]+)/);
 
-            // Si entra a la raíz o a 404, requiere sesión para ver su propio perfil
-            if (lastPart === '404' || lastPart === '404.html' || lastPart === '') {
-                 if(currentUserId) {
-                     cargarDatosPerfil(currentUserId, true);
-                 } else {
-                     // Si no hay usuario y no se especifica un perfil en la URL, enviar a login
-                     window.location.href = "/login.html";
-                 }
-                 return;
-            }
-
-            // Si detectamos un usuario en el enlace (ej. /@juan)
-            if (lastPart && lastPart !== '') {
-                let requestedUsername = lastPart.startsWith('@') ? lastPart : '@' + lastPart;
-                requestedUsername = requestedUsername.toLowerCase();
+            if (match) {
+                // Hay un @usuario en el enlace
+                const requestedUsername = ('@' + match[1]).toLowerCase();
 
                 try {
                     const snapshot = await db.collection('usuarios').where('username', '==', requestedUsername).get();
@@ -230,20 +210,27 @@
                     }
 
                     const userDoc = snapshot.docs[0];
-                    // Si el ID del documento coincide con el usuario actual logueado, es su propio perfil
                     const isMyProfile = (currentUserId === userDoc.id);
-                    cargarDatosPerfil(userDoc.id, isMyProfile);
+                    cargarDatosPerfil(userDoc.id, isMyProfile, currentUserId);
 
                 } catch (error) {
                     console.error("Error buscando perfil:", error);
+                    // Si llega aquí, es casi seguro porque no hiciste el Paso 1 de las Reglas de Firebase
                     document.getElementById('loadingOverlay').style.display = 'none';
                     document.getElementById('mainProfileContainer').style.display = 'none';
                     document.getElementById('errorScreen').style.display = 'flex';
                 }
+            } else {
+                // No hay @ en el enlace. Entró directo a /404.html
+                if (currentUserId) {
+                    cargarDatosPerfil(currentUserId, true, currentUserId);
+                } else {
+                    window.location.href = "/login.html";
+                }
             }
         });
 
-        function cargarDatosPerfil(uidToLoad, isMyProfile) {
+        function cargarDatosPerfil(uidToLoad, isMyProfile, loggedInUserId) {
             db.collection('usuarios').doc(uidToLoad).get().then((doc) => {
                 if (doc.exists) {
                     const data = doc.data();
@@ -269,7 +256,7 @@
                         document.getElementById('btnEditCover').style.display = 'none';
                         document.getElementById('btnEditAvatar').style.display = 'none';
 
-                        if(currentUserId) {
+                        if(loggedInUserId) {
                              const btnMensaje = document.createElement('button');
                              btnMensaje.className = "btn-message-profile";
                              btnMensaje.innerText = "💬 Enviar Mensaje";
@@ -314,7 +301,8 @@
                     } else if (tipo === 'portada') {
                         updateData.fotoPortada = imgUrl; document.getElementById('coverPhoto').style.backgroundImage = `url('${imgUrl}')`;
                     }
-                    await db.collection('usuarios').doc(currentUserId).update(updateData);
+                    // Utilizamos Firebase auth currentUser para asegurar que actualizamos nuestro propio documento
+                    await db.collection('usuarios').doc(firebase.auth().currentUser.uid).update(updateData);
                 } else {
                     alert("Error: No se pudo subir la imagen.");
                 }
