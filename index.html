@@ -113,6 +113,7 @@
         .nav-icon { width: 26px; height: 26px; fill: none; stroke: var(--of-gray); stroke-width: 1.5; }
         .nav-item.active .nav-icon { stroke: var(--of-blue); fill: rgba(0, 175, 240, 0.1); }
         
+        /* GLOBITOS DE NOTIFICACIÓN */
         .nav-badge {
             position: absolute; top: 4px; right: 2px; background: var(--of-red); color: white;
             font-size: 10px; font-weight: bold; padding: 2px 5px; border-radius: 10px;
@@ -240,7 +241,6 @@
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
             </button>
             <span class="compose-title">Notificaciones</span>
-            <!-- Bote de Basura: Eliminar todas -->
             <button id="btnVaciarNotif" onclick="vaciarNotificaciones()" style="background:none; border:none; font-size:20px; cursor:pointer;" title="Eliminar todas">🗑️</button>
         </div>
         <div class="notif-list-area" id="notifListArea">
@@ -420,10 +420,14 @@
         const auth = firebase.auth();
         const db = firebase.firestore();
         
+        // NUEVO: Activar caché local para ahorrar miles de lecturas
+        db.enablePersistence({synchronizeTabs:true}).catch(function(err) {
+            console.log("Error de caché local: ", err);
+        });
+
         const IMGBB_API_KEY = "88f000b35b55f78d1f16c9d9ea939050";
         let miUsuarioGlobal = null; 
         
-        // Variable para controlar la aleatoriedad sin gastar recursos extra
         let ordenAleatorioPosts = [];
 
         function cerrarMenus() {
@@ -533,7 +537,7 @@
         function cerrarNotificaciones() { document.getElementById('notificationsModal').style.display = 'none'; }
 
         function eliminarNotificacion(e, id) {
-            e.stopPropagation(); // Evita clics accidentales
+            e.stopPropagation(); 
             db.collection('usuarios').doc(miUsuarioGlobal.uid).collection('notificaciones').doc(id).delete()
             .then(() => {
                 const el = document.getElementById('notif-' + id);
@@ -707,7 +711,6 @@
 
         // CARGAR EL FEED EN MODO ALEATORIO (SOLO ÚLTIMOS 7 DÍAS)
         function cargarPublicaciones() {
-            // Pedimos 30 para tener variedad sin gastar mucho
             db.collection('publicaciones').orderBy('timestamp', 'desc').limit(30).onSnapshot((snapshot) => {
                 const postsArea = document.getElementById('postsArea');
                 if (snapshot.empty) { postsArea.innerHTML = '<div style="padding: 20px; text-align: center; color: #888;">No hay publicaciones aún. ¡Sé el primero!</div>'; return; }
@@ -719,24 +722,20 @@
                 snapshot.forEach(doc => {
                     const post = doc.data(); 
                     const postTime = post.timestamp ? post.timestamp.toDate().getTime() : ahora;
-                    // Solo agregamos si tiene 7 días o menos
                     if (ahora - postTime <= sieteDiasMs) {
                         postsValidos.push({ id: doc.id, data: post, time: postTime });
                     }
                 });
 
-                // Extraemos los IDs de esta lectura
                 const idsActuales = postsValidos.map(p => p.id);
 
-                // Mezclamos en memoria JS (0 costo Firebase)
                 if (ordenAleatorioPosts.length === 0) {
                     ordenAleatorioPosts = [...idsActuales].sort(() => Math.random() - 0.5);
                 } else {
                     const nuevosIds = idsActuales.filter(id => !ordenAleatorioPosts.includes(id));
-                    ordenAleatorioPosts = [...nuevosIds, ...ordenAleatorioPosts]; // Los nuevos arriba
+                    ordenAleatorioPosts = [...nuevosIds, ...ordenAleatorioPosts]; 
                 }
 
-                // Ordenamos los posts según nuestro arreglo aleatorio guardado
                 postsValidos.sort((a, b) => ordenAleatorioPosts.indexOf(a.id) - ordenAleatorioPosts.indexOf(b.id));
 
                 let postsHTML = '';
