@@ -189,25 +189,32 @@
         const IMGBB_API_KEY = "88f000b35b55f78d1f16c9d9ea939050";
         let currentUserId = null;
 
-        auth.onAuthStateChanged(async (user) => {
-            if (user) { currentUserId = user.uid; }
+        // SE ELIMINÓ auth.onAuthStateChanged PARA PERMITIR ACCESO PÚBLICO
+        document.addEventListener('DOMContentLoaded', async () => {
+            // Verificar el estado de la sesión, pero NO redirigir si no hay sesión
+            auth.onAuthStateChanged((user) => {
+                if (user) {
+                    currentUserId = user.uid;
+                }
+            });
 
             const path = decodeURIComponent(window.location.pathname);
             const cleanPath = path.replace(/^\/|\/$/g, '');
             const parts = cleanPath.split('/');
             let lastPart = parts[parts.length - 1];
 
-            // Si entra directo a 404, validamos si tiene sesión
+            // Si entra a la raíz o a 404, requiere sesión para ver su propio perfil
             if (lastPart === '404' || lastPart === '404.html' || lastPart === '') {
                  if(currentUserId) {
                      cargarDatosPerfil(currentUserId, true);
                  } else {
+                     // Si no hay usuario y no se especifica un perfil en la URL, enviar a login
                      window.location.href = "/login.html";
                  }
                  return;
             }
 
-            // Aquí atrapa cualquier enlace que tenga un usuario (ej. @Juan-Zamora99)
+            // Si detectamos un usuario en el enlace (ej. /@juan)
             if (lastPart && lastPart !== '') {
                 let requestedUsername = lastPart.startsWith('@') ? lastPart : '@' + lastPart;
                 requestedUsername = requestedUsername.toLowerCase();
@@ -216,7 +223,6 @@
                     const snapshot = await db.collection('usuarios').where('username', '==', requestedUsername).get();
 
                     if (snapshot.empty) {
-                        // LA CLAVE: Si inventan un usuario, NO recarga la página, muestra la pantalla de error.
                         document.getElementById('loadingOverlay').style.display = 'none';
                         document.getElementById('mainProfileContainer').style.display = 'none';
                         document.getElementById('errorScreen').style.display = 'flex';
@@ -224,6 +230,7 @@
                     }
 
                     const userDoc = snapshot.docs[0];
+                    // Si el ID del documento coincide con el usuario actual logueado, es su propio perfil
                     const isMyProfile = (currentUserId === userDoc.id);
                     cargarDatosPerfil(userDoc.id, isMyProfile);
 
