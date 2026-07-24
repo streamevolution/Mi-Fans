@@ -24,6 +24,24 @@
             display: flex; flex-direction: column;
         }
 
+        /* Barra de Autenticación Pública (Estilo Instagram) */
+        .public-auth-bar {
+            display: none; /* Oculta por defecto */
+            position: sticky; top: 0; width: 100%;
+            background: #ffffff;
+            padding: 12px 15px;
+            box-sizing: border-box;
+            justify-content: space-between;
+            align-items: center;
+            z-index: 100;
+            border-bottom: 1px solid #dbdbdb;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+        }
+        .public-auth-bar .logo-text { font-size: 20px; font-weight: 800; color: #1c1e21; letter-spacing: -0.5px; margin: 0; }
+        .public-auth-bar .auth-buttons { display: flex; gap: 8px; }
+        .btn-login-public { background: #00AFF0; color: white; border: none; padding: 7px 14px; border-radius: 8px; font-weight: bold; font-size: 13px; cursor: pointer; }
+        .btn-register-public { background: #fff; color: #00AFF0; border: 1px solid #00AFF0; padding: 7px 14px; border-radius: 8px; font-weight: bold; font-size: 13px; cursor: pointer; }
+
         .top-nav {
             position: absolute; top: 0; left: 0; width: 100%;
             padding: 15px; display: flex; align-items: center; justify-content: space-between;
@@ -105,7 +123,7 @@
         }
         .btn-message-profile:active { transform: scale(0.95); }
 
-        /* NUEVO: PANTALLA DE ERROR 404 INTERNA */
+        /* PANTALLA DE ERROR VISUAL */
         #errorScreen {
             position: absolute; top: 0; left: 0; width: 100%; height: 100dvh; background: #fff;
             z-index: 2000; display: none; flex-direction: column; justify-content: center;
@@ -119,7 +137,7 @@
 </head>
 <body>
 
-    <!-- PANTALLA DE ERROR (Se muestra si el usuario no existe) -->
+    <!-- Pantalla de Error Visual -->
     <div id="errorScreen">
         <span style="font-size: 50px; margin-bottom: 15px;">😕</span>
         <h2>Usuario no encontrado</h2>
@@ -131,10 +149,20 @@
         
         <div id="loadingOverlay">
             <span style="font-size: 35px; margin-bottom: 12px;">⏳</span>
-            <span id="loadingText" style="font-size: 16px;">Buscando perfil...</span>
+            <span id="loadingText" style="font-size: 16px;">Buscando usuario...</span>
         </div>
 
-        <div class="top-nav">
+        <!-- BARRA PÚBLICA ESTILO INSTAGRAM -->
+        <div id="publicAuthBar" class="public-auth-bar">
+            <h1 class="logo-text">Mi Fans</h1>
+            <div class="auth-buttons">
+                <button class="btn-login-public" onclick="window.location.href='/login.html'">Iniciar sesión</button>
+                <button class="btn-register-public" onclick="window.location.href='/login.html'">Registrarte</button>
+            </div>
+        </div>
+
+        <!-- BARRA ORIGINAL CON LA FLECHA -->
+        <div class="top-nav" id="topNav">
             <button class="btn-back" onclick="window.location.href='/index.html'">
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
             </button>
@@ -187,20 +215,21 @@
         const db = firebase.firestore();
         
         const IMGBB_API_KEY = "88f000b35b55f78d1f16c9d9ea939050";
-        let currentUserId = null;
 
-        auth.onAuthStateChanged(async (user) => {
-            if (user) { currentUserId = user.uid; }
+        document.addEventListener('DOMContentLoaded', async () => {
+            let currentUserId = null;
+            auth.onAuthStateChanged((user) => {
+                if (user) currentUserId = user.uid;
+            });
 
             const path = decodeURIComponent(window.location.pathname);
             const cleanPath = path.replace(/^\/|\/$/g, '');
             const parts = cleanPath.split('/');
             let lastPart = parts[parts.length - 1];
 
-            // Si entra a la raíz o directamente a 404
             if (lastPart === '404' || lastPart === '404.html' || lastPart === '') {
                  if(currentUserId) {
-                     cargarDatosPerfil(currentUserId, true);
+                     cargarDatosPerfil(currentUserId, true, currentUserId);
                  } else {
                      window.location.href = "/login.html";
                  }
@@ -215,7 +244,6 @@
                     const snapshot = await db.collection('usuarios').where('username', '==', requestedUsername).get();
 
                     if (snapshot.empty) {
-                        // LA MAGIA AQUÍ: Ya no redirige, solo muestra la pantalla de error visualmente.
                         document.getElementById('loadingOverlay').style.display = 'none';
                         document.getElementById('mainProfileContainer').style.display = 'none';
                         document.getElementById('errorScreen').style.display = 'flex';
@@ -224,7 +252,7 @@
 
                     const userDoc = snapshot.docs[0];
                     const isMyProfile = (currentUserId === userDoc.id);
-                    cargarDatosPerfil(userDoc.id, isMyProfile);
+                    cargarDatosPerfil(userDoc.id, isMyProfile, currentUserId);
 
                 } catch (error) {
                     console.error("Error buscando perfil:", error);
@@ -235,7 +263,7 @@
             }
         });
 
-        function cargarDatosPerfil(uidToLoad, isMyProfile) {
+        function cargarDatosPerfil(uidToLoad, isMyProfile, loggedInUserId) {
             db.collection('usuarios').doc(uidToLoad).get().then((doc) => {
                 if (doc.exists) {
                     const data = doc.data();
@@ -261,19 +289,25 @@
                         document.getElementById('btnEditCover').style.display = 'none';
                         document.getElementById('btnEditAvatar').style.display = 'none';
 
-                        if(currentUserId) {
+                        if(loggedInUserId) {
+                             // Visitante con cuenta
                              const btnMensaje = document.createElement('button');
                              btnMensaje.className = "btn-message-profile";
                              btnMensaje.innerText = "💬 Enviar Mensaje";
                              btnMensaje.onclick = () => window.location.href = `/chat.html?id=${uidToLoad}`;
                              document.getElementById('messageButtonContainer').appendChild(btnMensaje);
+                             
+                             document.getElementById('topNav').style.display = 'flex';
+                             document.getElementById('publicAuthBar').style.display = 'none';
                         } else {
-                             const btnLogin = document.createElement('button');
-                             btnLogin.className = "btn-message-profile";
-                             btnLogin.innerText = "🔒 Inicia sesión para mensajear";
-                             btnLogin.onclick = () => window.location.href = `/login.html`;
-                             document.getElementById('messageButtonContainer').appendChild(btnLogin);
+                             // Visitante 100% externo sin cuenta (Ocultamos flecha, mostramos barra)
+                             document.getElementById('topNav').style.display = 'none';
+                             document.getElementById('publicAuthBar').style.display = 'flex';
                         }
+                    } else {
+                         // Es el propio dueño viendo su perfil
+                         document.getElementById('topNav').style.display = 'flex';
+                         document.getElementById('publicAuthBar').style.display = 'none';
                     }
 
                     document.getElementById('loadingOverlay').style.display = 'none';
@@ -306,7 +340,7 @@
                     } else if (tipo === 'portada') {
                         updateData.fotoPortada = imgUrl; document.getElementById('coverPhoto').style.backgroundImage = `url('${imgUrl}')`;
                     }
-                    await db.collection('usuarios').doc(currentUserId).update(updateData);
+                    await db.collection('usuarios').doc(firebase.auth().currentUser.uid).update(updateData);
                 } else {
                     alert("Error: No se pudo subir la imagen.");
                 }
