@@ -105,7 +105,7 @@
         }
         .btn-message-profile:active { transform: scale(0.95); }
 
-        /* PANTALLA DE ERROR VISUAL */
+        /* NUEVO: PANTALLA DE ERROR 404 INTERNA */
         #errorScreen {
             position: absolute; top: 0; left: 0; width: 100%; height: 100dvh; background: #fff;
             z-index: 2000; display: none; flex-direction: column; justify-content: center;
@@ -119,7 +119,7 @@
 </head>
 <body>
 
-    <!-- Pantalla de Error Visual (Se activa si el usuario no existe) -->
+    <!-- PANTALLA DE ERROR (Se muestra si el usuario no existe) -->
     <div id="errorScreen">
         <span style="font-size: 50px; margin-bottom: 15px;">😕</span>
         <h2>Usuario no encontrado</h2>
@@ -131,7 +131,7 @@
         
         <div id="loadingOverlay">
             <span style="font-size: 35px; margin-bottom: 12px;">⏳</span>
-            <span id="loadingText" style="font-size: 16px;">Buscando usuario...</span>
+            <span id="loadingText" style="font-size: 16px;">Buscando perfil...</span>
         </div>
 
         <div class="top-nav">
@@ -187,22 +187,35 @@
         const db = firebase.firestore();
         
         const IMGBB_API_KEY = "88f000b35b55f78d1f16c9d9ea939050";
+        let currentUserId = null;
 
         auth.onAuthStateChanged(async (user) => {
-            const currentUserId = user ? user.uid : null;
+            if (user) { currentUserId = user.uid; }
 
-            // Lógica a prueba de balas para extraer el @usuario usando Regex
             const path = decodeURIComponent(window.location.pathname);
-            const match = path.match(/@([^/]+)/);
+            const cleanPath = path.replace(/^\/|\/$/g, '');
+            const parts = cleanPath.split('/');
+            let lastPart = parts[parts.length - 1];
 
-            if (match) {
-                // Hay un @usuario en el enlace
-                const requestedUsername = ('@' + match[1]).toLowerCase();
+            // Si entra a la raíz o directamente a 404
+            if (lastPart === '404' || lastPart === '404.html' || lastPart === '') {
+                 if(currentUserId) {
+                     cargarDatosPerfil(currentUserId, true);
+                 } else {
+                     window.location.href = "/login.html";
+                 }
+                 return;
+            }
+
+            if (lastPart && lastPart !== '') {
+                let requestedUsername = lastPart.startsWith('@') ? lastPart : '@' + lastPart;
+                requestedUsername = requestedUsername.toLowerCase();
 
                 try {
                     const snapshot = await db.collection('usuarios').where('username', '==', requestedUsername).get();
 
                     if (snapshot.empty) {
+                        // LA MAGIA AQUÍ: Ya no redirige, solo muestra la pantalla de error visualmente.
                         document.getElementById('loadingOverlay').style.display = 'none';
                         document.getElementById('mainProfileContainer').style.display = 'none';
                         document.getElementById('errorScreen').style.display = 'flex';
@@ -211,26 +224,18 @@
 
                     const userDoc = snapshot.docs[0];
                     const isMyProfile = (currentUserId === userDoc.id);
-                    cargarDatosPerfil(userDoc.id, isMyProfile, currentUserId);
+                    cargarDatosPerfil(userDoc.id, isMyProfile);
 
                 } catch (error) {
                     console.error("Error buscando perfil:", error);
-                    // Si llega aquí, es casi seguro porque no hiciste el Paso 1 de las Reglas de Firebase
                     document.getElementById('loadingOverlay').style.display = 'none';
                     document.getElementById('mainProfileContainer').style.display = 'none';
                     document.getElementById('errorScreen').style.display = 'flex';
                 }
-            } else {
-                // No hay @ en el enlace. Entró directo a /404.html
-                if (currentUserId) {
-                    cargarDatosPerfil(currentUserId, true, currentUserId);
-                } else {
-                    window.location.href = "/login.html";
-                }
             }
         });
 
-        function cargarDatosPerfil(uidToLoad, isMyProfile, loggedInUserId) {
+        function cargarDatosPerfil(uidToLoad, isMyProfile) {
             db.collection('usuarios').doc(uidToLoad).get().then((doc) => {
                 if (doc.exists) {
                     const data = doc.data();
@@ -256,7 +261,7 @@
                         document.getElementById('btnEditCover').style.display = 'none';
                         document.getElementById('btnEditAvatar').style.display = 'none';
 
-                        if(loggedInUserId) {
+                        if(currentUserId) {
                              const btnMensaje = document.createElement('button');
                              btnMensaje.className = "btn-message-profile";
                              btnMensaje.innerText = "💬 Enviar Mensaje";
@@ -301,8 +306,7 @@
                     } else if (tipo === 'portada') {
                         updateData.fotoPortada = imgUrl; document.getElementById('coverPhoto').style.backgroundImage = `url('${imgUrl}')`;
                     }
-                    // Utilizamos Firebase auth currentUser para asegurar que actualizamos nuestro propio documento
-                    await db.collection('usuarios').doc(firebase.auth().currentUser.uid).update(updateData);
+                    await db.collection('usuarios').doc(currentUserId).update(updateData);
                 } else {
                     alert("Error: No se pudo subir la imagen.");
                 }
