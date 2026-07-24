@@ -58,10 +58,10 @@
         .input-group input:focus { border-color: var(--of-blue); }
         .input-group input:disabled { background: #EAEAEA; color: #666; }
         
-        .file-upload-btn { background: #f0f8ff; color: var(--of-blue); border: 1px dashed var(--of-blue); padding: 12px; border-radius: 8px; font-size: 14px; font-weight: bold; cursor: pointer; text-align: center; }
+        .file-upload-btn { background: #f0f8ff; color: var(--of-blue); border: 1px dashed var(--of-blue); padding: 12px; border-radius: 8px; font-size: 14px; font-weight: bold; cursor: pointer; text-align: center; margin-bottom:10px; }
         
-        .btn-primary { background: var(--of-blue); color: white; border: none; padding: 14px; border-radius: 25px; font-size: 16px; font-weight: bold; cursor: pointer; width: 100%; margin-top: 10px; }
-        .btn-primary:active { opacity: 0.8; }
+        .btn-primary { background: var(--of-blue); color: white; border: none; padding: 14px; border-radius: 25px; font-size: 16px; font-weight: bold; cursor: pointer; width: 100%; margin-top: 10px; transition:0.2s;}
+        .btn-primary:active { opacity: 0.8; transform:scale(0.98); }
         .btn-success { background: var(--of-green); color: white; border: none; padding: 14px; border-radius: 25px; font-size: 16px; font-weight: bold; cursor: pointer; width: 100%; margin-top: 10px; }
         .btn-success:active { opacity: 0.8; }
 
@@ -149,7 +149,7 @@
                 <div class="input-group" style="background:#f4f9ff; padding:15px; border-radius:10px; border:1px solid #cce4ff;">
                     <label style="color:var(--of-blue); font-size:14px;">Precio de Suscripción VIP ($ MXN)</label>
                     <input type="number" id="inpPrecioSub" placeholder="Ej. 100">
-                    <span style="font-size: 12px; color: #555; margin-top: 4px; line-height:1.4;">Pon 0 para que tu perfil sea únicamente Gratis. Si pones un costo, habilitarás el botón <b>VIP Exclusivo</b> para que los fans te paguen esa cantidad mensual (Mínimo $50 MXN).</span>
+                    <span style="font-size: 12px; color: #555; margin-top: 4px; line-height:1.4;">Pon 0 para que tu perfil sea únicamente Gratis. Si pones un costo, habilitarás el botón <b>VIP Exclusivo</b> (Mínimo $50 MXN).</span>
                 </div>
 
                 <div class="input-group"><label>Nombre a mostrar</label><input type="text" id="inpNombre" placeholder="Tu nombre público"></div>
@@ -160,7 +160,7 @@
                     <label>Foto de Perfil</label>
                     <input type="file" id="inpFilePerfil" accept="image/*" style="display:none;" onchange="subirImagenConfig(event, 'perfil')">
                     <div class="file-upload-btn" onclick="document.getElementById('inpFilePerfil').click()">📷 Seleccionar Foto de Perfil</div>
-                    <img id="previewFotoPerfil" style="width:60px; height:60px; border-radius:50%; object-fit:cover; margin-top:10px; display:none;">
+                    <img id="previewFotoPerfil" style="width:60px; height:60px; border-radius:50%; object-fit:cover; display:none;">
                     <input type="hidden" id="inpUrlPerfil">
                 </div>
 
@@ -168,7 +168,7 @@
                     <label>Foto de Portada</label>
                     <input type="file" id="inpFilePortada" accept="image/*" style="display:none;" onchange="subirImagenConfig(event, 'portada')">
                     <div class="file-upload-btn" onclick="document.getElementById('inpFilePortada').click()">🖼️ Seleccionar Portada</div>
-                    <img id="previewFotoPortada" style="width:100%; height:100px; border-radius:8px; object-fit:cover; margin-top:10px; display:none;">
+                    <img id="previewFotoPortada" style="width:100%; height:100px; border-radius:8px; object-fit:cover; display:none;">
                     <input type="hidden" id="inpUrlPortada">
                 </div>
 
@@ -328,6 +328,10 @@
             }
         }
 
+        // ===============================================
+        // AHORA LAS FOTOS NO SE GUARDAN AL INSTANTE
+        // SOLO SE CARGAN A IMGBB Y ESPERAN AL BOTÓN GUARDAR
+        // ===============================================
         async function subirImagenConfig(event, tipo) {
             const file = event.target.files[0];
             if (!file) return;
@@ -353,6 +357,7 @@
                         document.getElementById('previewFotoPortada').src = imgUrl;
                         document.getElementById('previewFotoPortada').style.display = 'block';
                     }
+                    alert("Imagen cargada. Recuerda presionar 'Guardar Todos los Cambios' al final.");
                 } else {
                     alert("Error: No se pudo subir la imagen.");
                 }
@@ -364,7 +369,10 @@
             }
         }
 
-        function guardarCuenta() {
+        // ===============================================
+        // BATCH UPDATE: ACTUALIZAR PERFIL Y PUBLICACIONES
+        // ===============================================
+        async function guardarCuenta() {
             let precioSub = parseFloat(document.getElementById('inpPrecioSub').value) || 0;
             
             if (precioSub > 0 && precioSub < 50) {
@@ -392,29 +400,44 @@
                 interes: document.getElementById('inpInteres').value
             };
             
-            // BATCH UPDATE: Actualizar el usuario y todas sus publicaciones de una vez
-            db.collection('usuarios').doc(currentUserAuth.uid).update(nuevosDatos).then(async () => {
+            try {
+                // 1. Guardar en el documento principal del usuario
+                await db.collection('usuarios').doc(currentUserAuth.uid).update(nuevosDatos);
                 
-                try {
-                    const batch = db.batch();
-                    const postsSnap = await db.collection('publicaciones').where('uid', '==', currentUserAuth.uid).get();
-                    
-                    postsSnap.forEach(doc => {
-                        batch.update(doc.ref, {
-                            autor: nuevosDatos.nombre,
-                            usuario: nuevosDatos.username,
-                            fotoAutor: nuevosDatos.fotoPerfil
-                        });
+                // 2. ACTUALIZACIÓN POR LOTES (Propagar a las publicaciones e historias)
+                const batch = db.batch();
+                
+                // Actualizar Publicaciones Viejas
+                const postsSnap = await db.collection('publicaciones').where('uid', '==', currentUserAuth.uid).get();
+                postsSnap.forEach(doc => {
+                    batch.update(doc.ref, {
+                        autor: nuevosDatos.nombre,
+                        usuario: nuevosDatos.username,
+                        fotoAutor: nuevosDatos.fotoPerfil
                     });
-                    
-                    await batch.commit();
-                } catch(err) {
-                    console.log("No se pudieron actualizar los posts: ", err);
-                }
+                });
+                
+                // Actualizar Historias Viejas
+                const historiasSnap = await db.collection('historias').where('uid', '==', currentUserAuth.uid).get();
+                historiasSnap.forEach(doc => {
+                    batch.update(doc.ref, {
+                        autor: nuevosDatos.nombre,
+                        usuario: nuevosDatos.username,
+                        fotoAutor: nuevosDatos.fotoPerfil
+                    });
+                });
 
-                alert("¡Perfil actualizado con éxito!");
+                await batch.commit();
+
+                alert("¡Perfil actualizado con éxito en todas tus publicaciones!");
                 closeScreen('screen-cuenta');
-            }).catch(e => alert("Error: " + e.message)).finally(() => { btn.innerText = "Guardar Todos los Cambios"; btn.disabled = false; });
+
+            } catch(e) {
+                alert("Error al actualizar: " + e.message);
+            } finally {
+                btn.innerText = "Guardar Todos los Cambios"; 
+                btn.disabled = false;
+            }
         }
 
         function solicitarRetiro() {
