@@ -43,31 +43,32 @@
         .profile-bio { margin: 15px 20px 0 20px; font-size: 14px; color: #65676B; font-weight: 500; }
         
         .action-buttons-container { display: flex; gap: 10px; justify-content: center; margin-top: 15px; flex-wrap: wrap; margin-bottom: 20px;}
-        .btn-message-profile { padding: 12px 20px; background: #f0f2f5; color: var(--of-text); border: none; border-radius: 20px; font-weight: bold; font-size: 14px; cursor: pointer; transition: 0.2s; display:flex; align-items:center; gap:5px; }
-        .btn-subscribe-profile { padding: 12px 24px; background: var(--of-blue); color: white; border: none; border-radius: 20px; font-weight: bold; font-size: 15px; cursor: pointer; box-shadow: 0 2px 8px rgba(0, 175, 240, 0.3); transition: 0.2s; display:flex; align-items:center; gap:5px;}
+        .btn-message-profile { padding: 10px 18px; background: #f0f2f5; color: var(--of-text); border: none; border-radius: 20px; font-weight: bold; font-size: 14px; cursor: pointer; transition: 0.2s; display:flex; align-items:center; gap:5px; }
+        .btn-subscribe-profile { padding: 10px 20px; background: var(--of-blue); color: white; border: none; border-radius: 20px; font-weight: bold; font-size: 14px; cursor: pointer; box-shadow: 0 2px 8px rgba(0, 175, 240, 0.3); transition: 0.2s; display:flex; align-items:center; gap:5px;}
         .btn-subscribe-profile.subscribed { background: #28a745; box-shadow: none; }
         
+        /* DETALLES MÁS PEQUEÑOS Y BONITOS */
         .profile-info-section { padding: 0 20px 20px 20px; }
-        .info-card { background: #fff; border: 1px solid var(--of-border); border-radius: 12px; padding: 20px; box-shadow: 0 2px 5px rgba(0,0,0,0.02); }
-        .info-card h4 { margin: 0 0 20px 0; color: var(--of-text); font-size: 18px; font-weight: 800; border-bottom: 1px solid #eee; padding-bottom: 12px;}
-        .info-row { display: flex; align-items: center; gap: 15px; margin-bottom: 16px; color: var(--of-text); font-size: 15px; }
+        .info-card { background: #fff; border: 1px solid var(--of-border); border-radius: 12px; padding: 15px; box-shadow: 0 1px 3px rgba(0,0,0,0.02); }
+        .info-card h4 { margin: 0 0 12px 0; color: var(--of-text); font-size: 15px; font-weight: 800; border-bottom: 1px solid #f0f0f0; padding-bottom: 8px;}
+        .info-row { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; color: var(--of-text); font-size: 13px; }
         .info-row:last-child { margin-bottom: 0; }
-        .info-icon { font-size: 20px; color: var(--of-gray); width: 26px; text-align: center; }
+        .info-icon { font-size: 16px; color: var(--of-gray); width: 20px; text-align: center; }
         .info-value { font-weight: 700; color: #050505;}
 
-        /* ====== TABS (PUBLICACIONES Y GALERÍA) ====== */
+        /* PESTAÑAS (TABS) */
         .profile-tabs { display: flex; border-top: 1px solid var(--of-border); border-bottom: 1px solid var(--of-border); background: #fff; }
-        .profile-tab { flex: 1; text-align: center; padding: 15px; font-weight: bold; color: var(--of-gray); cursor: pointer; border-bottom: 3px solid transparent; font-size: 15px; transition: 0.2s; }
+        .profile-tab { flex: 1; text-align: center; padding: 12px; font-weight: bold; color: var(--of-gray); cursor: pointer; border-bottom: 3px solid transparent; font-size: 14px; transition: 0.2s; }
         .profile-tab.active { color: var(--of-blue); border-bottom: 3px solid var(--of-blue); }
         
         .profile-posts-area { background: #f4f4f4; min-height: 300px; padding-bottom: 50px; }
         
-        /* ESTILOS DE GALERÍA DE FOTOS (TIPO INSTAGRAM/ONLYFANS) */
+        /* GALERÍA DE FOTOS */
         .profile-gallery-area { display: grid; grid-template-columns: repeat(3, 1fr); gap: 2px; background: #fff; padding-bottom: 50px; min-height: 300px; }
         .gallery-item { width: 100%; aspect-ratio: 1 / 1; object-fit: cover; cursor: pointer; background: #e4e6eb; transition: opacity 0.2s; }
         .gallery-item:active { opacity: 0.7; }
 
-        /* ESTILOS DE PUBLICACIONES */
+        /* PUBLICACIONES Y MENÚ DE 3 PUNTITOS */
         .post-card { background: var(--of-bg); display: flex; flex-direction: column; border-bottom: 10px solid #f4f4f4; }
         .post-header { padding: 15px; display: flex; align-items: center; justify-content: space-between; position: relative;}
         .post-header-left { display: flex; align-items: center; gap: 12px; flex-grow: 1; }
@@ -75,10 +76,18 @@
         .post-author-info { display: flex; flex-direction: column; }
         .post-author-name { font-weight: 700; color: var(--of-text); font-size: 15px; display: flex; align-items: center; gap: 4px; }
         .post-author-handle { font-size: 13px; color: var(--of-gray); }
-        .post-time { font-size: 12px; color: var(--of-gray); }
+        
+        .post-header-right { position: relative; display: flex; align-items: center; }
+        .post-time { font-size: 12px; color: var(--of-gray); margin-right: 10px; }
+        .post-menu-btn { background: none; border: none; font-size: 20px; color: var(--of-gray); cursor: pointer; padding: 0 5px; font-weight: bold; }
+        .post-dropdown { position: absolute; right: 0; top: 30px; background: white; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); display: none; flex-direction: column; min-width: 150px; z-index: 50; overflow: hidden; border: 1px solid var(--of-border); }
+        .post-dropdown.active { display: flex; }
+        .post-dropdown-item { padding: 12px 15px; font-size: 13px; cursor: pointer; border-bottom: 1px solid var(--of-border); font-weight: 600; color: var(--of-text); text-align: center; }
+        .post-dropdown-item:last-child { border-bottom: none; }
+        .post-dropdown-item.danger { color: var(--of-red); }
 
         .post-text { padding: 0 15px 12px 15px; font-size: 15px; color: var(--of-text); line-height: 1.5; white-space: pre-wrap; }
-        .post-image { width: 100%; max-height: 500px; object-fit: cover; display: block; }
+        .post-image { width: 100%; max-height: 500px; object-fit: cover; display: block; cursor: pointer; }
         
         .post-actions-bar { display: flex; padding: 12px 15px; justify-content: space-between; align-items: center; }
         .left-actions { display: flex; gap: 20px; align-items: center; }
@@ -88,15 +97,25 @@
         .heart-filled { fill: var(--of-red); stroke: var(--of-red); }
         .heart-text-active { color: var(--of-red); font-weight: 700; }
 
+        /* OVERLAYS (Carga, Errores e Imágenes) */
         #loadingOverlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: #ffffff; z-index: 1000; display: flex; justify-content: center; align-items: center; flex-direction: column; color: var(--of-blue); font-weight: bold; }
         
         #errorScreen { position: absolute; top: 0; left: 0; width: 100%; height: 100dvh; background: #fff; z-index: 2000; display: none; flex-direction: column; justify-content: center; align-items: center; text-align: center; padding: 20px; box-sizing: border-box; }
         #errorScreen h2 { color: var(--of-text); font-size: 26px; font-weight: 900; margin-bottom: 10px; }
         #errorScreen p { color: #65676B; font-size: 16px; margin-bottom: 25px; }
         .btn-home { background: var(--of-blue); color: white; padding: 14px 28px; border: none; border-radius: 12px; font-weight: bold; font-size: 16px; cursor: pointer; box-shadow: 0 4px 12px rgba(0,175,240,0.3); }
+
+        .full-modal { position: fixed; top: 0; left: 0; right: 0; bottom: 0; z-index: 3000; display: none; flex-direction: column; animation: slideUp 0.2s ease-out; }
+        @keyframes slideUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
     </style>
 </head>
-<body>
+<body onclick="cerrarMenus()">
+
+    <!-- MODAL VISOR DE IMÁGENES (GALERÍA INTEGRADA) -->
+    <div id="imageViewerModal" class="full-modal" style="background: rgba(0,0,0,0.95); justify-content: center; align-items: center;">
+        <button onclick="cerrarImagenModal()" style="position: absolute; top: 15px; right: 20px; background: rgba(255,255,255,0.2); border: none; color: white; font-size: 24px; border-radius:50%; width:40px; height:40px; cursor: pointer; display:flex; justify-content:center; align-items:center; z-index:3010;">&times;</button>
+        <img id="imageViewerContent" style="max-width: 100%; max-height: 90vh; object-fit: contain; z-index:3005;">
+    </div>
 
     <div id="errorScreen">
         <span style="font-size: 50px; margin-bottom: 15px;">😕</span>
@@ -132,9 +151,7 @@
             <div class="avatar-container">
                 <img src="" id="profilePhoto" class="profile-avatar">
             </div>
-            
             <h1 class="profile-name" id="profileName"></h1>
-            
             <div class="action-buttons-container" id="actionButtonsContainer"></div>
             <p class="profile-bio" id="profileBio"></p>
         </div>
@@ -150,7 +167,7 @@
             </div>
         </div>
 
-        <!-- ====== PESTAÑAS (TABS) ====== -->
+        <!-- PESTAÑAS -->
         <div class="profile-tabs">
             <div class="profile-tab active" id="tab-posts" onclick="cambiarPestanaPerfil('posts')">Publicaciones</div>
             <div class="profile-tab" id="tab-gallery" onclick="cambiarPestanaPerfil('gallery')">Galería</div>
@@ -161,7 +178,7 @@
             <div style="text-align: center; padding: 30px; color: #888;">Cargando publicaciones...</div>
         </div>
 
-        <!-- ÁREA DE GALERÍA (Misma data, 0 costo) -->
+        <!-- ÁREA DE GALERÍA -->
         <div id="profileGalleryArea" class="profile-gallery-area" style="display:none;"></div>
 
     </div>
@@ -181,7 +198,23 @@
         const db = firebase.firestore();
         
         let miUsuarioGlobal = null; 
-        let postsGlobalesPerfil = []; // Guarda las publicaciones localmente para la Galería
+        let postsGlobalesPerfil = []; 
+
+        function cerrarMenus() {
+            document.querySelectorAll('.post-dropdown').forEach(d => d.classList.remove('active'));
+        }
+
+        // ==========================================
+        // VISOR DE IMÁGENES INTEGRADO
+        // ==========================================
+        function abrirImagenModal(url) {
+            document.getElementById('imageViewerContent').src = url;
+            document.getElementById('imageViewerModal').style.display = 'flex';
+        }
+        function cerrarImagenModal() {
+            document.getElementById('imageViewerModal').style.display = 'none';
+            document.getElementById('imageViewerContent').src = '';
+        }
 
         document.addEventListener('DOMContentLoaded', async () => {
             let currentUserId = null;
@@ -252,7 +285,10 @@
                 
                 const nombreReal = data.nombre || 'Usuario';
                 document.title = `${nombreReal} (@${(data.username || '').replace('@','')}) - Mi Fans`;
-                document.getElementById('profileName').innerHTML = `${nombreReal} <img src="https://i.postimg.cc/wj51JqWm/verificado.png" class="verified-badge" alt="Verificado">`;
+                
+                // CHECK AZUL 
+                const verifiedIcon = `<svg class="verified-badge" viewBox="0 0 24 24" style="width:18px;height:18px;fill:var(--of-blue);"><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10 10-4.5 10-10S17.5 2 12 2zm-1.9 14.7L6 12.6l1.5-1.5 2.6 2.6 6.4-6.4 1.5 1.5-7.9 7.9z"></path></svg>`;
+                document.getElementById('profileName').innerHTML = `${nombreReal} ${verifiedIcon}`;
                 
                 document.getElementById('profilePhoto').src = data.fotoPerfil || `https://ui-avatars.com/api/?name=${nombreReal}&background=random`;
                 if (data.fotoPortada) document.getElementById('coverPhoto').style.backgroundImage = `url('${data.fotoPortada}')`;
@@ -280,7 +316,7 @@
                             if (subTipo === 'vip') {
                                 const btnVip = document.createElement('button');
                                 btnVip.className = "btn-subscribe-profile subscribed";
-                                btnVip.innerHTML = "✅ Eres VIP (Cancelar)";
+                                btnVip.innerHTML = "✅ VIP (Cancelar)";
                                 btnVip.onclick = () => cancelarSuscripcion(uidToLoad, nombreReal, loggedInUserId);
                                 actionContainer.appendChild(btnVip);
                             } else {
@@ -299,7 +335,7 @@
 
                                 const btnVip = document.createElement('button');
                                 btnVip.className = "btn-subscribe-profile";
-                                btnVip.innerHTML = `⭐ VIP Exclusivo ($${precioSuscripcion.toFixed(2)}/mes)`;
+                                btnVip.innerHTML = `⭐ VIP ($${precioSuscripcion.toFixed(2)}/m)`;
                                 btnVip.onclick = () => procesarSuscripcion(uidToLoad, precioSuscripcion, nombreReal, loggedInUserId, 'vip');
                                 actionContainer.appendChild(btnVip);
                             }
@@ -340,7 +376,7 @@
         }
 
         // ==========================================
-        // LÓGICA DE PESTAÑAS (TABS)
+        // LÓGICA DE PESTAÑAS (TABS) Y GALERÍA
         // ==========================================
         function cambiarPestanaPerfil(tab) {
             document.getElementById('tab-posts').classList.remove('active');
@@ -353,13 +389,13 @@
                 document.getElementById('profilePostsArea').style.display = 'block';
             } else {
                 document.getElementById('tab-gallery').classList.add('active');
-                renderizarGaleriaPerfil(); // Renderiza usando los datos ya descargados
+                renderizarGaleriaPerfil(); 
             }
         }
 
         function renderizarGaleriaPerfil() {
             const galleryArea = document.getElementById('profileGalleryArea');
-            const fotos = postsGlobalesPerfil.filter(p => p.imagen); // Filtramos solo las que tienen imagen
+            const fotos = postsGlobalesPerfil.filter(p => p.imagen); 
 
             if(fotos.length === 0) {
                 galleryArea.style.display = 'block';
@@ -370,21 +406,20 @@
             galleryArea.style.display = 'grid';
             let html = '';
             fotos.forEach(post => {
-                // Al hacer clic, abre la foto en una ventana nueva
-                html += `<img src="${post.imagen}" class="gallery-item" onclick="window.open('${post.imagen}', '_blank')">`;
+                // Al hacer clic, abre en modal
+                html += `<img src="${post.imagen}" class="gallery-item" onclick="abrirImagenModal('${post.imagen}')">`;
             });
             galleryArea.innerHTML = html;
         }
 
         // ==========================================
-        // CACHÉ Y CARGA DE PUBLICACIONES
+        // CACHÉ E ÍNDICES (CARGA DE PUBLICACIONES)
         // ==========================================
         async function cargarPublicacionesPerfil(uid, isMyProfile) {
             const cacheKey = `posts_perfil_${uid}`;
             const timeKey = `posts_time_${uid}`;
             const ahora = Date.now();
             
-            // 1. Carga instantánea desde LocalStorage
             try {
                 const cachedData = localStorage.getItem(cacheKey);
                 if (cachedData) {
@@ -395,15 +430,17 @@
 
             const cacheTime = localStorage.getItem(timeKey);
 
-            // 2. Ahorro extremo de lecturas: 
-            // Si los posts se cargaron hace menos de 5 minutos, NO consultamos Firebase.
             if (!isMyProfile && cacheTime && (ahora - parseInt(cacheTime) < 300000)) {
                 return; 
             }
 
-            // 3. Consultar a Firebase (Solo si la caché expiró o es mi propio perfil)
             try {
-                const snapshot = await db.collection('publicaciones').where('uid', '==', uid).get();
+                // FIREBASE COMPOSITE INDEX USADO AQUÍ (Ahorro total de lecturas)
+                const snapshot = await db.collection('publicaciones')
+                                         .where('uid', '==', uid)
+                                         .orderBy('timestamp', 'desc')
+                                         .limit(15)
+                                         .get();
                 
                 let postsValidos = [];
                 snapshot.forEach(doc => {
@@ -413,21 +450,14 @@
                     postsValidos.push(data);
                 });
 
-                // Ordenamos las publicaciones por fecha localmente
-                postsValidos.sort((a, b) => b.timeMs - a.timeMs);
-                postsValidos = postsValidos.slice(0, 15); // Máximo 15 publicaciones en el perfil
-
-                // Guardamos en la variable global para que la pestaña Galería pueda usarlos
                 postsGlobalesPerfil = postsValidos;
-
-                // Actualizamos la caché local
                 localStorage.setItem(cacheKey, JSON.stringify(postsValidos));
                 localStorage.setItem(timeKey, ahora.toString());
 
                 renderizarPostsEnPerfil(postsValidos, uid);
             } catch (error) {
-                console.error("Error al buscar posts: ", error);
-                document.getElementById('profilePostsArea').innerHTML = '<div style="text-align: center; padding: 20px; color: #888;">Aún no hay publicaciones.</div>';
+                console.error("Error (Puede faltar el índice compuesto en Firebase): ", error);
+                document.getElementById('profilePostsArea').innerHTML = '<div style="text-align: center; padding: 20px; color: #888;">Cargando o no hay publicaciones. (Revisa consola para crear el índice)</div>';
             }
         }
 
@@ -439,6 +469,28 @@
             return `Hace ${Math.floor(diffSegundos / 86400)} d`;
         }
 
+        function togglePostMenuPerfil(e, postId) {
+            e.stopPropagation(); 
+            cerrarMenus(); 
+            document.getElementById('menu-perfil-' + postId).classList.toggle('active');
+        }
+
+        async function eliminarPostPerfil(e, postId) {
+            e.stopPropagation(); 
+            if(confirm("¿Seguro que deseas eliminar esta publicación?")) {
+                try {
+                    await db.collection('publicaciones').doc(postId).delete();
+                    alert("Publicación eliminada. Recarga la página para ver los cambios.");
+                } catch(err) { alert("Error al eliminar la publicación."); }
+            }
+        }
+
+        function reportarPostPerfil(e) {
+            e.stopPropagation(); 
+            alert('Publicación reportada a los administradores.');
+            cerrarMenus();
+        }
+
         function renderizarPostsEnPerfil(posts, perfilUid) {
             const postsArea = document.getElementById('profilePostsArea');
             if (!posts || posts.length === 0) {
@@ -447,22 +499,29 @@
             }
 
             let html = '';
-            const verifiedSVG = `<svg class="verified-badge" viewBox="0 0 24 24"><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10 10-4.5 10-10S17.5 2 12 2zm-1.9 14.7L6 12.6l1.5-1.5 2.6 2.6 6.4-6.4 1.5 1.5-7.9 7.9z"></path></svg>`;
+            // Check Azul aplicado
+            const verifiedSVG = `<svg class="verified-badge" viewBox="0 0 24 24" style="width:16px;height:16px;fill:var(--of-blue);"><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10 10-4.5 10-10S17.5 2 12 2zm-1.9 14.7L6 12.6l1.5-1.5 2.6 2.6 6.4-6.4 1.5 1.5-7.9 7.9z"></path></svg>`;
 
             posts.forEach(post => {
                 const tiempoStr = formatearTiempoMs(post.timeMs);
-                const imagenHTML = post.imagen ? `<img src="${post.imagen}" class="post-image">` : '';
+                const imagenHTML = post.imagen ? `<img src="${post.imagen}" class="post-image" onclick="abrirImagenModal('${post.imagen}')">` : '';
                 
                 let isLiked = false;
                 let heartIconClass = 'post-action-icon';
                 let heartTextClass = 'action-group';
                 
-                if (miUsuarioGlobal && post.likedBy && post.likedBy.includes(miUsuarioGlobal.uid)) {
+                if (miUsuarioGlobal && post.likedBy && post.likedBy.includes(miUsuarioGlobal?.uid)) {
                     isLiked = true;
                     heartIconClass += ' heart-filled';
                     heartTextClass += ' heart-text-active';
                 }
                 const isLikedStr = isLiked ? 'true' : 'false';
+
+                // MENÚ DE LOS 3 PUNTITOS
+                const isMine = post.uid === miUsuarioGlobal?.uid;
+                const menuOptions = isMine 
+                    ? `<div class="post-dropdown-item danger" onclick="eliminarPostPerfil(event, '${post.id}')">Eliminar publicación</div>`
+                    : `<div class="post-dropdown-item" onclick="reportarPostPerfil(event)">Reportar publicación</div>`;
 
                 html += `
                     <div class="post-card">
@@ -476,6 +535,10 @@
                             </div>
                             <div class="post-header-right">
                                 <div class="post-time">${tiempoStr}</div>
+                                <button class="post-menu-btn" onclick="togglePostMenuPerfil(event, '${post.id}')">⋮</button>
+                                <div id="menu-perfil-${post.id}" class="post-dropdown">
+                                    ${menuOptions}
+                                </div>
                             </div>
                         </div>
                         <div class="post-text">${post.texto}</div>
@@ -565,14 +628,6 @@
                     tipo: tipoSuscripcion,
                     precioMensual: tipoSuscripcion === 'vip' ? precio : 0,
                     timestamp: firebase.firestore.FieldValue.serverTimestamp()
-                });
-
-                const notifRef = db.collection('usuarios').doc(creatorUid).collection('notificaciones').doc();
-                batch.set(notifRef, {
-                    tipo: 'subscription', autor: myData.nombre || 'Un Fan',
-                    foto: myData.fotoPerfil || `https://ui-avatars.com/api/?name=${myData.nombre || 'F'}&background=random`,
-                    texto: tipoSuscripcion === 'vip' ? `se ha suscrito a tu contenido VIP.` : `ha comenzado a seguirte.`,
-                    leida: false, timestamp: firebase.firestore.FieldValue.serverTimestamp()
                 });
 
                 await batch.commit();
